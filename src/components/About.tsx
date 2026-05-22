@@ -6,7 +6,7 @@ import { useWebsiteData } from '../context/WebsiteDataContext';
 
 export default function About() {
   const [showJourney, setShowJourney] = useState(false);
-  const { data } = useWebsiteData();
+  const { data, isDataLoaded } = useWebsiteData();
   const c = data.content;
 
   const qualificationCards = [
@@ -46,16 +46,21 @@ export default function About() {
           
           {/* LEFT SIDE: Professional portrait at desk */}
           <div className="lg:col-span-5 relative">
-            <div className="relative rounded-[32px] overflow-hidden shadow-xl border border-slate-100">
-              {/* Overlay with subtle lighting */}
-              <div className="absolute inset-0 bg-teal/5 pointer-events-none" />
-              <img
-                src={data.images?.about?.image || nisaDeskPortrait}
-                alt="Nisa Idrisi sitting at her executive consulting workspace"
-                className="w-full h-auto object-cover rounded-[32px] hover:scale-105 transition-transform duration-700 aspect-[4/3] sm:aspect-auto"
-                referrerPolicy="no-referrer"
-              />
-            </div>
+            {isDataLoaded && data.images?.about?.image ? (
+              <div className="relative rounded-[32px] overflow-hidden shadow-xl border border-slate-100">
+                {/* Overlay with subtle lighting */}
+                <div className="absolute inset-0 bg-teal/5 pointer-events-none" />
+                <img
+                  src={data.images.about.image}
+                  alt="Nisa Idrski sitting at her executive consulting workspace"
+                  className="w-full h-auto object-cover rounded-[32px] hover:scale-105 transition-transform duration-700 aspect-[4/3] sm:aspect-auto"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+            ) : (
+              // Loading skeleton while data loads
+              <div className="relative rounded-[32px] overflow-hidden shadow-xl border border-slate-100 bg-gradient-to-br from-slate-200 to-slate-300 animate-pulse aspect-[4/3] sm:aspect-auto" />
+            )}
             
             {/* Context Floating Tag */}
             <div className="absolute -bottom-6 -right-4 bg-white shadow-xl rounded-2xl p-4 border border-slate-50 flex items-center gap-3">
@@ -77,7 +82,7 @@ export default function About() {
                 About Me
               </span>
               <h2 className="text-3xl sm:text-4.5xl font-bold font-sans tracking-tight text-teal">
-                Nisa Idrisi
+                Nisa Idrski
               </h2>
             </div>
 
@@ -86,7 +91,7 @@ export default function About() {
                 {c.aboutBiography}
               </p>
               <p>
-                My consultancy framework is built on absolute clarity, proactive HMRC compliance forecasting, and long-term capital compounding. Whether you are navigating complicated cross-border VAT schemas or structuring Series Funding allocations, I ensure your balance sheets are fortified to support aggressive expansion goals.
+                My consultancy framework is built on absolute clarity, proactive HMRC compliance forecasting, and long-term capital compounding. Whether you are navigating complicated cross-border[...]
               </p>
             </div>
 
@@ -116,7 +121,7 @@ export default function About() {
             <div>
               <button
                 onClick={() => setShowJourney(!showJourney)}
-                className="inline-flex items-center gap-2 bg-emerald-accent hover:bg-emerald-accent-dark text-white px-6 py-3.5 rounded-xl font-bold text-xs tracking-wider uppercase transition-all duration-300 shadow-md shadow-emerald-accent/15 cursor-pointer"
+                className="inline-flex items-center gap-2 bg-emerald-accent hover:bg-emerald-accent-dark text-white px-6 py-3.5 rounded-xl font-bold text-xs tracking-wider uppercase transition-al[...]"
               >
                 <span>More About My Journey</span>
                 <ChevronDown size={14} className={`transition-transform duration-300 ${showJourney ? 'rotate-180' : ''}`} />
@@ -175,9 +180,9 @@ export default function About() {
             return (
               <div 
                 key={idx}
-                className="bg-slate-50/50 border border-slate-100 rounded-2xl p-6 transition-all duration-300 hover:bg-white hover:shadow-xl hover:-translate-y-1 hover:border-emerald-accent/20 group"
+                className="bg-slate-50/50 border border-slate-100 rounded-2xl p-6 transition-all duration-300 hover:bg-white hover:shadow-xl hover:-translate-y-1 hover:border-emerald-accent/20 gr[...]"
               >
-                <div className="w-12 h-12 rounded-xl bg-emerald-accent/10 border border-emerald-accent/15 flex items-center justify-center text-teal mb-4 group-hover:bg-emerald-accent group-hover:text-white transition-all">
+                <div className="w-12 h-12 rounded-xl bg-emerald-accent/10 border border-emerald-accent/15 flex items-center justify-center text-teal mb-4 group-hover:bg-emerald-accent group-hover[...]">
                   <IconComp size={20} className="stroke-[1.8]" />
                 </div>
                 <h3 className="text-sm font-bold text-teal mb-1">
