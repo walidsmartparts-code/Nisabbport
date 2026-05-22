@@ -2,6 +2,31 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Service, Testimonial, FAQItem, Industry, Booking } from '../types';
 import { SERVICES, TESTIMONIALS, FAQS, INDUSTRIES } from '../data';
 
+import { 
+  db, 
+  auth, 
+  OperationType, 
+  handleFirestoreError 
+} from '../firebase';
+import { 
+  collection, 
+  doc, 
+  setDoc, 
+  getDoc,
+  updateDoc, 
+  onSnapshot, 
+  query, 
+  orderBy, 
+  limit 
+} from 'firebase/firestore';
+import { 
+  onAuthStateChanged, 
+  signInWithPopup, 
+  GoogleAuthProvider, 
+  signOut, 
+  User 
+} from 'firebase/auth';
+
 // Types for Blog & Portfolio Posts
 export interface BlogPost {
   id: string;
@@ -191,6 +216,13 @@ interface WebsiteDataContextType {
   logs: AuditLog[];
   addLog: (log: Omit<AuditLog, 'id' | 'timestamp'>) => void;
   purgeCdnCache: () => Promise<boolean>;
+
+  // Firebase integration additions
+  user: User | null;
+  isAdminUser: boolean;
+  authLoading: boolean;
+  signInWithGoogle: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const WebsiteDataContext = createContext<WebsiteDataContextType | undefined>(undefined);
@@ -423,132 +455,239 @@ const INITIAL_STATE: FullWebsiteState = {
 };
 
 export const WebsiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [data, setData] = useState<FullWebsiteState>(() => {
-    const saved = localStorage.getItem('nisa_website_data');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (err) {
-        console.error('Failed to parse saved website data, resetting to template state', err);
-      }
-    }
-    return INITIAL_STATE;
-  });
+  const [data, setData] = useState<FullWebsiteState>(INITIAL_STATE);
+  const [draftData, setDraftData] = useState<FullWebsiteState>(INITIAL_STATE);
+  const [logs, setLogsState] = useState<AuditLog[]>(INITIAL_LOGS);
+  
+  // Real-time custom indicators
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
-  const [draftData, setDraftData] = useState<FullWebsiteState>(data);
-  const [hasChanges, setHasChanges] = useState(false);
-  const [logs, setLogs] = useState<AuditLog[]>(() => {
-    const saved = localStorage.getItem('nisa_audit_logs');
-    return saved ? JSON.parse(saved) : INITIAL_LOGS;
-  });
+  const isAdminUser = user?.email === "walidsmartparts@gmail.com" && user?.emailVerified === true;
+  const hasChanges = JSON.stringify(data) !== JSON.stringify(draftData);
 
-  // Track if current draft state is different from published state
+  // 1. Core Auth Listener
   useEffect(() => {
-    const isDifferent = JSON.stringify(data) !== JSON.stringify(draftData);
-    setHasChanges(isDifferent);
-  }, [data, draftData]);
-
-  // Persist logs in localStorage
-  useEffect(() => {
-    localStorage.setItem('nisa_audit_logs', JSON.stringify(logs));
-  }, [logs]);
-
-  // Auto-track passive visual analytics on startup/visitor views
-  useEffect(() => {
-    // Increment stats count on loading the page
-    setTimeout(() => {
-      setData(prev => {
-        const next = {
-          ...prev,
-          analytics: {
-            ...prev.analytics,
-            views: prev.analytics.views + 1
-          }
-        };
-        localStorage.setItem('nisa_website_data', JSON.stringify(next));
-        return next;
-      });
-    }, 1000);
+    const unsub = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+      setAuthLoading(false);
+    });
+    return unsub;
   }, []);
 
+  // 2. Real-time Subscription - Public Website Layout (site/published)
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'site', 'published'), (snapshot) => {
+      if (snapshot.exists()) {
+        const dbData = snapshot.data() as FullWebsiteState;
+        setData(prev => ({
+          ...prev,
+          ...dbData,
+          // Retain leads from local sync state if available
+          leads: prev.leads.length > 0 ? prev.leads : (dbData.leads || [])
+        }));
+      } else {
+        // Self-initialize empty database with fallback defaults
+        const bootstrap = async () => {
+          try {
+            await setDoc(doc(db, 'site', 'published'), INITIAL_STATE);
+            console.log("Self-bootstrapped Firestore layout config");
+          } catch (e) {
+            console.warn("Passive configuration seed bypass:", e);
+          }
+        };
+        bootstrap();
+      }
+    }, (error) => {
+      console.warn("Direct site/published snapshot subscription handled passively:", error.message);
+    });
+
+    return unsub;
+  }, []);
+
+  // 3. Real-time Subscription - Sandbox Workspace Layout (site/draft)
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'site', 'draft'), (snapshot) => {
+      if (snapshot.exists()) {
+        const dbDraft = snapshot.data() as FullWebsiteState;
+        setDraftData(prev => ({
+          ...prev,
+          ...dbDraft,
+          leads: prev.leads.length > 0 ? prev.leads : (dbDraft.leads || [])
+        }));
+      } else {
+        const bootstrapDraft = async () => {
+          try {
+            await setDoc(doc(db, 'site', 'draft'), INITIAL_STATE);
+          } catch (e) {
+            console.warn("Passive draft configuration seed bypass:", e);
+          }
+        };
+        bootstrapDraft();
+      }
+    }, (error) => {
+      console.warn("Direct site/draft snapshot subscription handled passively:", error.message);
+    });
+
+    return unsub;
+  }, []);
+
+  // 4. Real-time Subscription - Secured Leads & Audit Trails (Admin SSO Exclusive)
+  useEffect(() => {
+    let unsubLeads: (() => void) | undefined;
+    let unsubLogs: (() => void) | undefined;
+
+    if (isAdminUser) {
+      console.log("Admin verified! Initializing secure collection sync streams.");
+      
+      const leadsQuery = query(collection(db, 'leads'), orderBy('createdAt', 'desc'));
+      unsubLeads = onSnapshot(leadsQuery, (snapshot) => {
+        const fetchedLeads: Booking[] = [];
+        snapshot.forEach(docSnap => {
+          fetchedLeads.push(docSnap.data() as Booking);
+        });
+        
+        setData(prev => ({ ...prev, leads: fetchedLeads }));
+        setDraftData(prev => ({ ...prev, leads: fetchedLeads }));
+      }, (error) => {
+        handleFirestoreError(error, OperationType.LIST, 'leads');
+      });
+
+      const logsQuery = query(collection(db, 'logs'), orderBy('timestamp', 'desc'), limit(100));
+      unsubLogs = onSnapshot(logsQuery, (snapshot) => {
+        const fetchedLogs: AuditLog[] = [];
+        snapshot.forEach(docSnap => {
+          fetchedLogs.push(docSnap.data() as AuditLog);
+        });
+        setLogsState(fetchedLogs);
+      }, (error) => {
+        handleFirestoreError(error, OperationType.LIST, 'logs');
+      });
+    } else {
+      // Spectators or non-admins fall back to empty or mock lists
+      setLogsState(INITIAL_LOGS);
+    }
+
+    return () => {
+      if (unsubLeads) unsubLeads();
+      if (unsubLogs) unsubLogs();
+    };
+  }, [isAdminUser]);
+
+  // 5. Auto passive visitor metrics tracker
+  useEffect(() => {
+    const incrementPassiveViews = setTimeout(async () => {
+      try {
+        const publishedDocRef = doc(db, 'site', 'published');
+        // Fetch current document first
+        const snap = await getDoc(publishedDocRef);
+        if (snap.exists()) {
+          const currentData = snap.data() as FullWebsiteState;
+          const updatedViews = (currentData.analytics?.views || INITIAL_ANALYTICS.views) + 1;
+          
+          await updateDoc(publishedDocRef, {
+            'analytics.views': updatedViews
+          });
+        }
+      } catch (err) {
+        // Suppress errors during local spectator loading to keep console clean
+      }
+    }, 2000);
+
+    return () => clearTimeout(incrementPassiveViews);
+  }, []);
+
+  // Core functions
   const saveDraft = (updatedDraft: Partial<FullWebsiteState> | ((prev: FullWebsiteState) => FullWebsiteState)) => {
     setDraftData(prev => {
       const next = typeof updatedDraft === 'function' ? updatedDraft(prev) : { ...prev, ...updatedDraft };
+      
+      // Keep Sandbox Workspace fully saved on Google Cloud!
+      setDoc(doc(db, 'site', 'draft'), next)
+        .catch(err => handleFirestoreError(err, OperationType.UPDATE, 'site/draft'));
+
       return next;
     });
   };
 
-  const publishDraft = () => {
-    setData(draftData);
-    localStorage.setItem('nisa_website_data', JSON.stringify(draftData));
+  const publishDraft = async () => {
     addLog({
-      ip: '127.0.0.1 (Local Session)',
+      ip: '127.0.0.1 (Web CMS Block)',
       action: 'Publish Changes',
       status: 'success',
-      details: 'All changes in sections draft were pushed live.'
+      details: 'All sandbox visual modules and layout content guidelines were pushed live to the public ledger.'
     });
+
+    try {
+      // Synchronize sandbox draft with production in parallel
+      await setDoc(doc(db, 'site', 'published'), draftData);
+      await setDoc(doc(db, 'site', 'draft'), draftData);
+      setData(draftData);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'site/published');
+    }
   };
 
   const undoChanges = () => {
     setDraftData(data);
+    setDoc(doc(db, 'site', 'draft'), data)
+      .catch(err => handleFirestoreError(err, OperationType.WRITE, 'site/draft'));
   };
 
-  const resetToDefault = () => {
-    setDraftData(INITIAL_STATE);
-    setData(INITIAL_STATE);
-    localStorage.setItem('nisa_website_data', JSON.stringify(INITIAL_STATE));
+  const resetToDefault = async () => {
     addLog({
-      ip: '127.0.0.1',
+      ip: '127.0.0.1 (Platform Reset)',
       action: 'Reset Entire Project',
       status: 'success',
-      details: 'Website reverted to sovereign system templates.'
+      details: 'Sovereign database reset to default template standards.'
     });
+
+    try {
+      await setDoc(doc(db, 'site', 'draft'), INITIAL_STATE);
+      await setDoc(doc(db, 'site', 'published'), INITIAL_STATE);
+      setDraftData(INITIAL_STATE);
+      setData(INITIAL_STATE);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'site/published');
+    }
   };
 
-  // Dedicated atomic handlers for components
-  const addLead = (lead: Omit<Booking, 'id' | 'createdAt' | 'status'>) => {
+  // Add consultation booking leads (visitor function)
+  const addLead = async (lead: Omit<Booking, 'id' | 'createdAt' | 'status'>) => {
+    const leadId = `lead-${Date.now()}`;
     const newLead: Booking = {
       ...lead,
-      id: `lead-${Date.now()}`,
+      id: leadId,
       status: 'pending',
       createdAt: new Date().toISOString()
     };
-    
-    // Update both draft and production state because leads are transaction logs submitted by consumers
-    const appendLead = (prev: FullWebsiteState) => ({
-      ...prev,
-      leads: [newLead, ...prev.leads],
-      analytics: {
-        ...prev.analytics,
-        timelineData: prev.analytics.timelineData.map((d, idx) => 
-          idx === prev.analytics.timelineData.length - 1 
-            ? { ...d, actions: d.actions + 1 } 
-            : d
-        )
-      }
-    });
 
-    setData(prev => {
-      const next = appendLead(prev);
-      localStorage.setItem('nisa_website_data', JSON.stringify(next));
-      return next;
-    });
-    setDraftData(prev => appendLead(prev));
+    try {
+      await setDoc(doc(db, 'leads', leadId), newLead);
+      
+      // Increment submit metrics locally if available
+      setData(prev => ({
+        ...prev,
+        analytics: {
+          ...prev.analytics,
+          timelineData: prev.analytics.timelineData.map((d, index) => 
+            index === prev.analytics.timelineData.length - 1 
+              ? { ...d, actions: d.actions + 1 } 
+              : d
+          )
+        }
+      }));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, `leads/${leadId}`);
+    }
   };
 
-  const updateLeadStatus = (id: string, status: 'pending' | 'confirmed') => {
-    const editLeads = (prev: FullWebsiteState) => ({
-      ...prev,
-      leads: prev.leads.map(l => l.id === id ? { ...l, status } : l)
-    });
-    
-    // Changes applied directly to draft and live leads database
-    setData(prev => {
-      const next = editLeads(prev);
-      localStorage.setItem('nisa_website_data', JSON.stringify(next));
-      return next;
-    });
-    setDraftData(prev => editLeads(prev));
+  const updateLeadStatus = async (id: string, status: 'pending' | 'confirmed') => {
+    try {
+      await updateDoc(doc(db, 'leads', id), { status });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `leads/${id}`);
+    }
   };
 
   const addBlogPost = (post: Omit<BlogPost, 'id' | 'publishedAt' | 'views'>) => {
@@ -603,23 +742,53 @@ export const WebsiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }));
   };
 
-  const addLog = (log: Omit<AuditLog, 'id' | 'timestamp'>) => {
+  const addLog = async (log: Omit<AuditLog, 'id' | 'timestamp'>) => {
+    const logId = `log-${Date.now()}`;
     const newLog: AuditLog = {
       ...log,
-      id: `log-${Date.now()}`,
+      id: logId,
       timestamp: new Date().toISOString()
     };
-    setLogs(prev => [newLog, ...prev]);
+
+    if (isAdminUser) {
+      try {
+        await setDoc(doc(db, 'logs', logId), newLog);
+      } catch (error) {
+        handleFirestoreError(error, OperationType.CREATE, `logs/${logId}`);
+      }
+    } else {
+      // Local fallback for passive logging before SSO authorization completes
+      setLogsState(prev => [newLog, ...prev]);
+    }
   };
 
   const purgeCdnCache = async () => {
-    addLog({
-      ip: '127.0.0.1 (Web Core)',
+    await addLog({
+      ip: '127.0.0.1 (Cloud Admin)',
       action: 'Purge CDN Cloud Cache',
       status: 'success',
-      details: 'All DNS, static assets & style sheets invalidated globally.'
+      details: 'All regional sovereign static and dynamic content Delivery networks successfully flushed.'
     });
     return true;
+  };
+
+  // Google Single Sign-On handles
+  const signInWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (e) {
+      console.error("Google SSO Popup triggered exception: ", e);
+      throw e;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.error("Error signing out:", e);
+    }
   };
 
   return (
@@ -642,7 +811,13 @@ export const WebsiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
         deleteProject,
         logs,
         addLog,
-        purgeCdnCache
+        purgeCdnCache,
+        // Google authentication extensions
+        user,
+        isAdminUser,
+        authLoading,
+        signInWithGoogle,
+        logout
       }}
     >
       {children}

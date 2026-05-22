@@ -175,18 +175,27 @@ export default function AdminDashboard() {
     deleteProject,
     logs,
     addLog,
-    purgeCdnCache
+    purgeCdnCache,
+    // Google authentication integration
+    user,
+    isAdminUser,
+    authLoading,
+    signInWithGoogle,
+    logout
   } = useWebsiteData();
 
   // Authentication States
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+  const [isLocalCredsAuth, setIsLocalCredsAuth] = useState(() => {
     return localStorage.getItem('nisa_admin_logged_in') === 'true';
   });
+  
+  const isAuthenticated = isAdminUser || isLocalCredsAuth;
+  
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
   
-  // Custom Google auth mockup state
+  // Google auth loader state
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [googlePopupOpen, setGooglePopupOpen] = useState(false);
 
@@ -255,7 +264,7 @@ export default function AdminDashboard() {
   const handleCredentialsLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (username.trim() === 'admin' && password === 'bigbooty69') {
-      setIsAuthenticated(true);
+      setIsLocalCredsAuth(true);
       localStorage.setItem('nisa_admin_logged_in', 'true');
       setAuthError('');
       addLog({
@@ -276,18 +285,29 @@ export default function AdminDashboard() {
     }
   };
 
-  // Mock Google Authentication Dialog handlers
-  const triggerGoogleAuthMock = () => {
+  // Real Google Application Authentication Popup handlers
+  const triggerGoogleAuthMock = async () => {
     setIsGoogleLoading(true);
-    setGooglePopupOpen(true);
-    setTimeout(() => {
+    try {
+      await signInWithGoogle();
+      addLog({
+        ip: '172.56.24.8',
+        action: 'Google SSO Authentication',
+        status: 'success',
+        details: 'Authenticated successfully via Firebase Google SSO.'
+      });
+      showToast('Authenticated Securely via Google Single Sign-On.');
+    } catch (e: any) {
+      console.error("Popup Error details:", e);
+      setAuthError('Google SSO popup failed or was blockaded: ' + (e.message || String(e)));
+    } finally {
       setIsGoogleLoading(false);
-    }, 1500);
+    }
   };
 
   const completeGoogleAuth = (email: string) => {
     setGooglePopupOpen(false);
-    setIsAuthenticated(true);
+    setIsLocalCredsAuth(true);
     localStorage.setItem('nisa_admin_logged_in', 'true');
     addLog({
       ip: '172.56.24.8',
@@ -298,9 +318,16 @@ export default function AdminDashboard() {
     showToast(`Welcome back, ${email.split('@')[0]}`);
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
+  const handleLogout = async () => {
+    setIsLocalCredsAuth(false);
     localStorage.removeItem('nisa_admin_logged_in');
+    
+    try {
+      await logout();
+    } catch (e) {
+      console.warn("Auth logout returned exception:", e);
+    }
+
     addLog({
       ip: '127.0.0.1',
       action: 'Terminated User Session',

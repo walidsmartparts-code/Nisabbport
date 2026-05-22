@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all global catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global authorization helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && 
+             request.auth.token.email_verified == true && 
+             request.auth.token.email == "walidsmartparts@gmail.com";
+    }
+
+    // 1. Site configuration rules - read accessible to everyone, changes locked to admin
+    match /site/{configId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 2. Consultation booking leads rules - submissions public, records isolated to admin
+    match /leads/{leadId} {
+      allow create: if leadId is string && 
+                       leadId.size() <= 128 && 
+                       request.resource.data.status == 'pending' &&
+                       request.resource.data.name is string &&
+                       request.resource.data.email is string;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // 3. Security audit logging - admin accessible, completely immutable
+    match /logs/{logId} {
+      allow read, create: if isAdmin();
+      allow update, delete: if false;
+    }
+  }
+}

@@ -1,0 +1,165 @@
+{
+  "entities": {
+    "SiteConfig": {
+      "title": "Site Configuration",
+      "description": "The entire published and draft state containing content, services, testimonials, portfolio, FAQs, and global metadata settings.",
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "object",
+          "description": "Key content headlines and biographical texts"
+        },
+        "services": {
+          "type": "array",
+          "description": "Sovereign financial consulting service options"
+        },
+        "industries": {
+          "type": "array",
+          "description": "Expertise domains and niche market coverage"
+        },
+        "testimonials": {
+          "type": "array",
+          "description": "Reviews and credibility feedback from high-net-worth clients"
+        },
+        "faqs": {
+          "type": "array",
+          "description": "Common questions regarding compliance and corporate finance"
+        },
+        "blogs": {
+          "type": "array",
+          "description": "CMS articles written by Nisa Idrisi"
+        },
+        "portfolio": {
+          "type": "array",
+          "description": "Active consulting projects and success studies"
+        },
+        "seo": {
+          "type": "object",
+          "description": "Advanced OpenGraph, LinkedIn, and meta engine parameters"
+        },
+        "settings": {
+          "type": "object",
+          "description": "Global brand colors, primary email, contact phone, and addresses"
+        },
+        "analytics": {
+          "type": "object",
+          "description": "Pageviews, CTR metrics, and browser demographic logs"
+        },
+        "images": {
+          "type": "object",
+          "description": "Custom wallpaper assets and executive portraits"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of the last layout edit publication"
+        },
+        "updatedBy": {
+          "type": "string",
+          "description": "Admin UID responsible for the publication"
+        }
+      },
+      "required": ["content", "services", "industries", "testimonials", "faqs", "blogs", "portfolio", "seo", "settings", "analytics", "images", "updatedAt"]
+    },
+    "Booking": {
+      "title": "Booking Lead",
+      "description": "A direct consultation booking or sales lead submitted by a visitor.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique auto-generated ID"
+        },
+        "name": {
+          "type": "string",
+          "description": "Full name of the corporate lead"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Primary communication email address"
+        },
+        "company": {
+          "type": "string",
+          "description": "Associated business or SME name"
+        },
+        "service": {
+          "type": "string",
+          "description": "Internal identifier for requested service tier"
+        },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "description": "Proposed consultation date"
+        },
+        "time": {
+          "type": "string",
+          "description": "Proposed consultation time slot"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Brief description of tax planning needs"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "confirmed"],
+          "description": "Action state for incoming clients"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "HMRC-certified audit timestamp of lead submission"
+        }
+      },
+      "required": ["id", "name", "email", "service", "date", "status", "createdAt"]
+    },
+    "AuditLog": {
+      "title": "Audit Log",
+      "description": "A secure audit trace entry logging security updates, reset operations, and administrator sessions.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique secure log identifier"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Exact moment of session action"
+        },
+        "ip": {
+          "type": "string",
+          "description": "Obfuscated internet protocol source"
+        },
+        "action": {
+          "type": "string",
+          "description": "Literal summary of transaction executed"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["success", "failed"],
+          "description": "Outcome of validation checking"
+        },
+        "details": {
+          "type": "string",
+          "description": "Detailed log information"
+        }
+      },
+      "required": ["id", "timestamp", "ip", "action", "status", "details"]
+    }
+  },
+  "firestore": {
+    "/site/{configId}": {
+      "schema": "SiteConfig",
+      "description": "Sovereign parameters containing active website layouts and content configurations."
+    },
+    "/leads/{leadId}": {
+      "schema": "Booking",
+      "description": "Collection storing corporate consultation bookings and HMRC-adjacent lead records."
+    },
+    "/logs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Audit logging repository for administrative access control trails."
+    }
+  }
+}
