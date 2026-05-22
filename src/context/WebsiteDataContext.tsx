@@ -33,11 +33,55 @@ export interface PortfolioProject {
 export interface SEOInfo {
   metaTitle: string;
   metaDescription: string;
-  openGraphTitle: string;
-  openGraphDescription: string;
-  openGraphImage: string;
-  twitterCard: 'summary' | 'summary_large_image';
+  keywords: string[];
   canonicalUrl: string;
+  robots: string;
+
+  openGraph: {
+    title: string;
+    description: string;
+    image: string;
+    url: string;
+    type: string;
+  };
+
+  twitterCard: {
+    cardType: 'summary' | 'summary_large_image';
+    title: string;
+    description: string;
+    image: string;
+  };
+
+  linkedin: {
+    title: string;
+    description: string;
+    image: string;
+  };
+
+  facebook: {
+    title: string;
+    description: string;
+    image: string;
+  };
+}
+
+export interface SectionImages {
+  hero: {
+    backgroundImage: string;
+    mainImage: string;
+  };
+  about: {
+    image: string;
+  };
+  expertise: {
+    image: string;
+  };
+  testimonials: {
+    image: string;
+  };
+  footer: {
+    image: string;
+  };
 }
 
 export interface GlobalSettings {
@@ -119,9 +163,9 @@ export interface FullWebsiteState {
   portfolio: PortfolioProject[];
   seo: SEOInfo;
   settings: GlobalSettings;
-  media: MediaFile[];
   leads: Booking[];
   analytics: PageAnalytics;
+  images: SectionImages;
 }
 
 interface WebsiteDataContextType {
@@ -142,8 +186,6 @@ interface WebsiteDataContextType {
   addProject: (project: Omit<PortfolioProject, 'id'>) => void;
   editProject: (id: string, project: Partial<PortfolioProject>) => void;
   deleteProject: (id: string) => void;
-  addMediaFile: (file: Omit<MediaFile, 'id' | 'uploadedAt'>) => void;
-  deleteMediaFile: (id: string) => void;
   
   // Security log handlers
   logs: AuditLog[];
@@ -189,11 +231,51 @@ const DEFAULT_CONTENT: WebsiteContent = {
 const DEFAULT_SEO: SEOInfo = {
   metaTitle: 'Nisa Idrisi | Strategic Wealth Finance Executive & Compliance Advisory',
   metaDescription: 'High-level corporate accounting, statutory HMRC auditing, and strategic tax planning for SMEs, global executives, and real estate portfolios.',
-  openGraphTitle: 'Nisa Idrisi - Strategic Corporate Wealth Redefined',
-  openGraphDescription: 'Executive tax advisory, compliance checklists, and high-net-worth portfolio optimization.',
-  openGraphImage: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80',
-  twitterCard: 'summary_large_image',
-  canonicalUrl: 'https://nisaidrisi-consulting.co.uk'
+  keywords: ['Finance Executive', 'Chartered Accountant', 'HMRC Compliance', 'Strategic Wealth'],
+  canonicalUrl: 'https://nisaidrisi-consulting.co.uk',
+  robots: 'index, follow',
+  openGraph: {
+    title: 'Nisa Idrisi - Strategic Corporate Wealth Redefined',
+    description: 'Executive tax advisory, compliance checklists, and high-net-worth portfolio optimization.',
+    image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80',
+    url: 'https://nisaidrisi-consulting.co.uk',
+    type: 'website'
+  },
+  twitterCard: {
+    cardType: 'summary_large_image',
+    title: 'Nisa Idrisi | Strategic Corporate Finance',
+    description: 'High-level corporate tax accounting, statutory auditing compliance, and wealth design strategy.',
+    image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80'
+  },
+  linkedin: {
+    title: 'Nisa Idrisi | Chartered Certified Accountant (FCCA)',
+    description: 'Advising SMEs and real-estate developers on HMRC compliance guidelines and double-entry auditing workflows.',
+    image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80'
+  },
+  facebook: {
+    title: 'Nisa Idrisi Advisory Services',
+    description: 'Statutory compliance advisory, double tax treaties planning, and global fund auditing pipelines.',
+    image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80'
+  }
+};
+
+const DEFAULT_IMAGES: SectionImages = {
+  hero: {
+    backgroundImage: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1920&q=80',
+    mainImage: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=600&h=800&q=80'
+  },
+  about: {
+    image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80'
+  },
+  expertise: {
+    image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=800&q=80'
+  },
+  testimonials: {
+    image: 'https://images.unsplash.com/photo-1544377193-33dcf4d68fb5?auto=format&fit=crop&w=800&q=80'
+  },
+  footer: {
+    image: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=800&q=80'
+  }
 };
 
 const DEFAULT_SETTINGS: GlobalSettings = {
@@ -267,33 +349,6 @@ const INITIAL_PROJECTS: PortfolioProject[] = [
   }
 ];
 
-const INITIAL_MEDIA: MediaFile[] = [
-  {
-    id: 'media-1',
-    name: 'nisa_portrait_mayfair.jpg',
-    url: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=600&h=800&q=80',
-    size: '1.4 MB',
-    type: 'image/jpeg',
-    uploadedAt: '2026-05-15T09:00:00Z'
-  },
-  {
-    id: 'media-2',
-    name: 'valuation_chart_revolo.png',
-    url: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80',
-    size: '840 KB',
-    type: 'image/png',
-    uploadedAt: '2026-05-18T11:20:00Z'
-  },
-  {
-    id: 'media-3',
-    name: 'finflow_office_london.jpg',
-    url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
-    size: '2.1 MB',
-    type: 'image/jpeg',
-    uploadedAt: '2026-05-19T15:40:00Z'
-  }
-];
-
 const INITIAL_LEADS: Booking[] = [
   {
     id: 'lead-1',
@@ -362,9 +417,9 @@ const INITIAL_STATE: FullWebsiteState = {
   portfolio: INITIAL_PROJECTS,
   seo: DEFAULT_SEO,
   settings: DEFAULT_SETTINGS,
-  media: INITIAL_MEDIA,
   leads: INITIAL_LEADS,
-  analytics: INITIAL_ANALYTICS
+  analytics: INITIAL_ANALYTICS,
+  images: DEFAULT_IMAGES
 };
 
 export const WebsiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -548,25 +603,6 @@ export const WebsiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }));
   };
 
-  const addMediaFile = (file: Omit<MediaFile, 'id' | 'uploadedAt'>) => {
-    const newFile: MediaFile = {
-      ...file,
-      id: `media-${Date.now()}`,
-      uploadedAt: new Date().toISOString()
-    };
-    saveDraft(prev => ({
-      ...prev,
-      media: [newFile, ...prev.media]
-    }));
-  };
-
-  const deleteMediaFile = (id: string) => {
-    saveDraft(prev => ({
-      ...prev,
-      media: prev.media.filter(m => m.id !== id)
-    }));
-  };
-
   const addLog = (log: Omit<AuditLog, 'id' | 'timestamp'>) => {
     const newLog: AuditLog = {
       ...log,
@@ -604,8 +640,6 @@ export const WebsiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
         addProject,
         editProject,
         deleteProject,
-        addMediaFile,
-        deleteMediaFile,
         logs,
         addLog,
         purgeCdnCache

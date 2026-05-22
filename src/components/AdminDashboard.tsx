@@ -3,8 +3,8 @@ import {
   useWebsiteData, 
   BlogPost, 
   PortfolioProject, 
-  MediaFile, 
-  AuditLog 
+  AuditLog,
+  SectionImages
 } from '../context/WebsiteDataContext';
 import {
   Booking,
@@ -13,6 +13,7 @@ import {
   Testimonial,
   FAQItem
 } from '../types';
+import AdminImageBlock from './AdminImageBlock';
 import { 
   LayoutDashboard, 
   Menu as MenuIcon, 
@@ -172,8 +173,6 @@ export default function AdminDashboard() {
     addProject,
     editProject,
     deleteProject,
-    addMediaFile,
-    deleteMediaFile,
     logs,
     addLog,
     purgeCdnCache
@@ -193,6 +192,7 @@ export default function AdminDashboard() {
 
   // Active workspace subsection
   const [activeTab, setActiveTab] = useState('overview');
+  const [selectedSeoTab, setSelectedSeoTab] = useState<'global' | 'og' | 'twitter' | 'linkedin' | 'facebook'>('global');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   
   // Local Workspace Draft changes (transient till published or saved)
@@ -228,6 +228,20 @@ export default function AdminDashboard() {
     setCurrentSeo(draftData.seo);
     setCurrentSettings(draftData.settings);
   }, [draftData]);
+
+  const handleImageChange = (section: keyof SectionImages, key: string, value: string) => {
+    saveDraft(prev => ({
+      ...prev,
+      images: {
+        ...prev.images,
+        [section]: {
+          ...prev.images[section],
+          [key]: value
+        }
+      }
+    }));
+    showToast(`Updated image configuration for ${section}`);
+  };
 
   // Toast Helper
   const showToast = (message: string) => {
@@ -317,8 +331,20 @@ export default function AdminDashboard() {
 
   const handleSEOChange = (field: keyof typeof currentSeo, val: string) => {
     const updated = { ...currentSeo, [field]: val };
-    setCurrentSeo(updated);
-    saveDraft({ seo: updated });
+    setCurrentSeo(updated as any);
+    saveDraft({ seo: updated as any });
+  };
+
+  const handleNestedSEOChange = (category: 'openGraph' | 'twitterCard' | 'linkedin' | 'facebook', field: string, val: string) => {
+    const updated = {
+      ...currentSeo,
+      [category]: {
+        ...((currentSeo[category] as any) || {}),
+        [field]: val
+      }
+    };
+    setCurrentSeo(updated as any);
+    saveDraft({ seo: updated as any });
   };
 
   const handleSettingsChange = (field: keyof typeof currentSettings, val: string | boolean) => {
@@ -417,24 +443,6 @@ export default function AdminDashboard() {
       showToast(`Edited Case Study details.`);
     }
     setSelectedProjectId(null);
-  };
-
-  // Media simulated upload
-  const simulateFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = () => {
-        addMediaFile({
-          name: file.name,
-          url: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=800&q=80', // Premium visual placeholder
-          size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-          type: file.type || 'image/jpeg'
-        });
-        showToast(`Simulated PNG upload and file sizing compression: ${file.name}`);
-      };
-      reader.readAsDataURL(file);
-    }
   };
 
   const copyToClipboard = (text: string) => {
@@ -618,7 +626,6 @@ export default function AdminDashboard() {
     { label: 'CTA Banner', id: 'cta', icon: ArrowUpRight },
     { label: 'Blog CMS', id: 'blog', icon: FileText },
     { label: 'Portfolio/Case Studies', id: 'portfolio', icon: Activity },
-    { label: 'Media Library', id: 'media', icon: ImageIcon },
     { label: 'SEO Settings', id: 'seo', icon: Globe },
     { label: 'Leads Inbox', id: 'leads', icon: Calendar },
     { label: 'Branding Settings', id: 'branding', icon: Palette },
@@ -981,6 +988,24 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               </div>
+
+              <div className="pt-6 border-t border-slate-100 space-y-4">
+                <h4 className="text-xs font-bold text-[#004D40] uppercase tracking-wider">Hero Section Dynamic Images</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <AdminImageBlock
+                    label="Hero Desktop Portrait"
+                    description="Professional photo of Nisa Idrisi (Cloudinary or CDN URL)"
+                    value={draftData.images?.hero?.mainImage || ''}
+                    onChange={(val) => handleImageChange('hero', 'mainImage', val)}
+                  />
+                  <AdminImageBlock
+                    label="Hero Background Overlay"
+                    description="Wallpaper/backdrop image URL"
+                    value={draftData.images?.hero?.backgroundImage || ''}
+                    onChange={(val) => handleImageChange('hero', 'backgroundImage', val)}
+                  />
+                </div>
+              </div>
             </div>
           )}
 
@@ -1064,6 +1089,16 @@ export default function AdminDashboard() {
                     ))}
                   </div>
                 </div>
+              </div>
+
+              <div className="pt-6 border-t border-slate-100 space-y-4">
+                <h4 className="text-xs font-bold text-[#004D40] uppercase tracking-wider">About Section Dynamic Image</h4>
+                <AdminImageBlock
+                  label="Biography Executive Image"
+                  description="Main portrait of Nisa Idrisi next to the biography text (Cloudinary or CDN URL)"
+                  value={draftData.images?.about?.image || ''}
+                  onChange={(val) => handleImageChange('about', 'image', val)}
+                />
               </div>
             </div>
           )}
@@ -1171,6 +1206,16 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 ))}
+              </div>
+
+              <div className="pt-6 border-t border-slate-100 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                <h4 className="text-xs font-bold text-[#004D40] uppercase tracking-wider">Expertise Section Dynamic Image</h4>
+                <AdminImageBlock
+                  label="Expertise Display Chart"
+                  description="Illustration or graph showing compliance ratings/expertise outcomes (Cloudinary or CDN URL)"
+                  value={draftData.images?.expertise?.image || ''}
+                  onChange={(val) => handleImageChange('expertise', 'image', val)}
+                />
               </div>
             </div>
           )}
@@ -1339,6 +1384,16 @@ export default function AdminDashboard() {
                   </div>
                 ))}
               </div>
+
+              <div className="pt-6 border-t border-slate-100 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                <h4 className="text-xs font-bold text-[#004D40] uppercase tracking-wider">Testimonials Section Dynamic Image</h4>
+                <AdminImageBlock
+                  label="Trust / Clients Illustration Image"
+                  description="Secondary background portrait or branding graphic in reviews section (Cloudinary or CDN URL)"
+                  value={draftData.images?.testimonials?.image || ''}
+                  onChange={(val) => handleImageChange('testimonials', 'image', val)}
+                />
+              </div>
             </div>
           )}
 
@@ -1462,6 +1517,16 @@ export default function AdminDashboard() {
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm focus:outline-none"
                   />
                 </div>
+              </div>
+
+              <div className="pt-6 border-t border-slate-100 space-y-4">
+                <h4 className="text-xs font-bold text-[#004D40] uppercase tracking-wider">Footer Section Dynamic Image</h4>
+                <AdminImageBlock
+                  label="Footer Office Backdrop"
+                  description="Branded skyline, document checklist, or corporate graphic shown in website footer structure (Cloudinary or CDN URL)"
+                  value={draftData.images?.footer?.image || ''}
+                  onChange={(val) => handleImageChange('footer', 'image', val)}
+                />
               </div>
             </div>
           )}
@@ -1813,149 +1878,379 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* MEDIA LIBRARY */}
-          {activeTab === 'media' && (
-            <div className="max-w-5xl space-y-6">
-              <div className="p-8 border-2 border-dashed border-slate-200 hover:border-[#10B981] bg-white rounded-3xl transition-all relative overflow-hidden flex flex-col items-center justify-center text-center space-y-4">
-                <div className="w-12 h-12 rounded-full bg-[#10B981]/15 text-emerald-accent-dark flex items-center justify-center">
-                  <Upload size={20} />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-800">Mock Web Image Optimization upload</h4>
-                  <p className="text-xs text-slate-400 max-w-sm mt-1 leading-relaxed">Drag files directly or click manually to trigger automated compression and CDN caching tests.</p>
-                </div>
-                <input 
-                  type="file" 
-                  accept="image/*"
-                  onChange={simulateFileUpload}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                />
-              </div>
-
-              <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-bold text-slate-800 font-serif">Sovereign Images Ledger</h3>
-                  <span className="text-xs text-slate-400 font-bold">{draftData.media.length} files total</span>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-4">
-                  {draftData.media.map(file => (
-                    <div key={file.id} className="border border-slate-100 bg-slate-50 rounded-2xl overflow-hidden group flex flex-col justify-between">
-                      <div className="aspect-video relative overflow-hidden bg-slate-200">
-                        <img 
-                          src={file.url} 
-                          alt={file.name}
-                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                          referrerPolicy="no-referrer"
-                        />
-                      </div>
-                      
-                      <div className="p-4 space-y-2">
-                        <p className="text-xs font-bold text-slate-800 truncate" title={file.name}>{file.name}</p>
-                        <div className="flex justify-between text-[9px] text-slate-400 font-mono font-bold">
-                          <span>{file.size}</span>
-                          <span>COMPRESSED PNG</span>
-                        </div>
-                        
-                        <div className="flex gap-2 pt-2 border-t border-slate-150">
-                          <button 
-                            onClick={() => copyToClipboard(file.url)}
-                            className="flex-1 py-1 px-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-[10px] font-bold text-slate-700 rounded-lg flex items-center justify-center gap-1 cursor-pointer"
-                          >
-                            <Copy size={11} />
-                            <span>Copy URL</span>
-                          </button>
-                          <button 
-                            onClick={() => {
-                              deleteMediaFile(file.id);
-                              showToast('Asset deleted from library.');
-                            }}
-                            className="p-1 px-1.5 hover:bg-rose-50 border border-slate-100 rounded-lg text-rose-500 cursor-pointer"
-                          >
-                            <Trash2 size={11} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* SEO SETTINGS */}
           {activeTab === 'seo' && (
-            <div className="max-w-4xl grid grid-cols-2 gap-6">
-              <div className="bg-white border border-slate-100 rounded-3xl p-8 shadow-sm space-y-6">
-                <h3 className="text-base font-extrabold text-slate-850 pb-4 border-b border-slate-50">Global Search Meta Tags</h3>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Meta Title</label>
-                    <input 
-                      type="text" 
-                      value={currentSeo.metaTitle || ''}
-                      onChange={(e) => handleSEOChange('metaTitle', e.target.value)}
-                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Meta Description</label>
-                    <textarea 
-                      rows={3}
-                      value={currentSeo.metaDescription || ''}
-                      onChange={(e) => handleSEOChange('metaDescription', e.target.value)}
-                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl leading-relaxed"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Primary OpenGraph Title</label>
-                    <input 
-                      type="text" 
-                      value={currentSeo.openGraphTitle || ''}
-                      onChange={(e) => handleSEOChange('openGraphTitle', e.target.value)}
-                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Canonical Link URL</label>
-                    <input 
-                      type="text" 
-                      value={currentSeo.canonicalUrl || ''}
-                      onChange={(e) => handleSEOChange('canonicalUrl', e.target.value)}
-                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-emerald-accent-dark font-mono font-bold"
-                    />
-                  </div>
-                </div>
+            <div className="max-w-5xl space-y-6">
+              {/* Tabs selector */}
+              <div className="flex border-b border-slate-200 bg-white p-2 rounded-2xl gap-1">
+                <button
+                  onClick={() => setSelectedSeoTab('global')}
+                  className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all ${selectedSeoTab === 'global' ? 'bg-[#004D40] text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  Global Index (Google)
+                </button>
+                <button
+                  onClick={() => setSelectedSeoTab('og')}
+                  className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all ${selectedSeoTab === 'og' ? 'bg-[#004D40] text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  OpenGraph (WhatsApp)
+                </button>
+                <button
+                  onClick={() => setSelectedSeoTab('twitter')}
+                  className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all ${selectedSeoTab === 'twitter' ? 'bg-[#004D40] text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  Twitter / X Preview
+                </button>
+                <button
+                  onClick={() => setSelectedSeoTab('linkedin')}
+                  className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all ${selectedSeoTab === 'linkedin' ? 'bg-[#004D40] text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  LinkedIn Post Card
+                </button>
+                <button
+                  onClick={() => setSelectedSeoTab('facebook')}
+                  className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all ${selectedSeoTab === 'facebook' ? 'bg-[#004D40] text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  Facebook Feed Card
+                </button>
               </div>
 
-              {/* Live interactive Google SERP Preview simulator style card */}
-              <div className="space-y-6">
-                <div className="bg-white rounded-3xl p-8 border border-slate-105 shadow-sm space-y-4">
-                  <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest pl-1 header-font font-serif">Google Search Snippet Preview</h4>
-                  
-                  <div className="p-6 bg-white border border-slate-200 rounded-2xl shadow-inner space-y-2 text-left font-sans text-xs">
-                    <div className="flex items-center gap-1.5 text-slate-400 text-[10px] tracking-wide font-mono">
-                      <span>{currentSeo.canonicalUrl || 'https://nisaidrisi-consulting.co.uk'}</span>
-                      <span>›</span>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Inputs Column */}
+                <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm space-y-6">
+                  {selectedSeoTab === 'global' && (
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-bold text-[#004D40] font-sans border-b border-slate-50 pb-2">Global Meta Tags</h3>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Meta Title</label>
+                        <input 
+                          type="text" 
+                          value={currentSeo.metaTitle || ''}
+                          onChange={(e) => handleSEOChange('metaTitle', e.target.value)}
+                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Meta Description</label>
+                        <textarea 
+                          rows={3}
+                          value={currentSeo.metaDescription || ''}
+                          onChange={(e) => handleSEOChange('metaDescription', e.target.value)}
+                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs leading-relaxed focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Canonical Link URL</label>
+                        <input 
+                          type="text" 
+                          value={currentSeo.canonicalUrl || ''}
+                          onChange={(e) => handleSEOChange('canonicalUrl', e.target.value)}
+                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none font-mono text-emerald-accent-dark font-semibold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Focus Keywords (Comma Separated)</label>
+                        <input 
+                          type="text" 
+                          value={currentSeo.keywords || ''}
+                          onChange={(e) => handleSEOChange('keywords', e.target.value)}
+                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none"
+                          placeholder="wealth tax advisor, chartered accountant, HMRC compliance"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Search Bots Directives (Robots)</label>
+                        <select 
+                          value={currentSeo.robots || 'index, follow'}
+                          onChange={(e) => handleSEOChange('robots', e.target.value)}
+                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none"
+                        >
+                          <option value="index, follow">index, follow (Default Global Indexing)</option>
+                          <option value="noindex, nofollow">noindex, nofollow (Private Sandbox Mode)</option>
+                          <option value="index, nofollow">index, nofollow (Index main only, skip child links)</option>
+                          <option value="noindex, follow">noindex, follow (Do not display on lists, but follow index backlinks)</option>
+                        </select>
+                      </div>
                     </div>
-                    <a className="text-[#1a0dab] hover:underline text-base font-extrabold font-serif leading-tight block">
-                      {currentSeo.metaTitle || 'Nisa Idrisi | Strategic Wealth Finance'}
-                    </a>
-                    <p className="text-[#4d5156] leading-relaxed text-[11px]">
-                      {currentSeo.metaDescription || 'High-level auditing compliance and tactical HMRC calculations.'}
-                    </p>
-                  </div>
+                  )}
+
+                  {selectedSeoTab === 'og' && (
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-bold text-[#004D40] font-sans border-b border-slate-50 pb-2">OpenGraph Metadata Tag Settings</h3>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Social Preview Title</label>
+                        <input 
+                          type="text" 
+                          value={currentSeo.openGraph?.title || ''}
+                          onChange={(e) => handleNestedSEOChange('openGraph', 'title', e.target.value)}
+                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Social Description</label>
+                        <textarea 
+                          rows={3}
+                          value={currentSeo.openGraph?.description || ''}
+                          onChange={(e) => handleNestedSEOChange('openGraph', 'description', e.target.value)}
+                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs leading-relaxed focus:outline-none"
+                        />
+                      </div>
+                      <AdminImageBlock
+                        label="OpenGraph Preview Image URL"
+                        description="Custom high-contrast portrait or business card brand thumbnail URL for shared previews"
+                        value={currentSeo.openGraph?.image || ''}
+                        onChange={(val) => handleNestedSEOChange('openGraph', 'image', val)}
+                      />
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] uppercase text-slate-400 font-extrabold mb-1">OG Type</label>
+                          <input 
+                            type="text" 
+                            value={currentSeo.openGraph?.type || 'website'}
+                            onChange={(e) => handleNestedSEOChange('openGraph', 'type', e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs focus:outline-none font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] uppercase text-slate-400 font-extrabold mb-1">OG Share URL</label>
+                          <input 
+                            type="text" 
+                            value={currentSeo.openGraph?.url || ''}
+                            onChange={(e) => handleNestedSEOChange('openGraph', 'url', e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs focus:outline-none font-mono"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedSeoTab === 'twitter' && (
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-bold text-[#004D40] font-sans border-b border-slate-50 pb-2">Twitter / X Card Meta Tags</h3>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Card Type Representation</label>
+                        <select 
+                          value={currentSeo.twitterCard?.cardType || 'summary_large_image'}
+                          onChange={(e) => handleNestedSEOChange('twitterCard', 'cardType', e.target.value)}
+                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none"
+                        >
+                          <option value="summary_large_image">Summary with Large Cover Image</option>
+                          <option value="summary">Standard In-Feed Square Summary Card</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Card Title Header</label>
+                        <input 
+                          type="text" 
+                          value={currentSeo.twitterCard?.title || ''}
+                          onChange={(e) => handleNestedSEOChange('twitterCard', 'title', e.target.value)}
+                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Card Description Meta Text</label>
+                        <textarea 
+                          rows={3}
+                          value={currentSeo.twitterCard?.description || ''}
+                          onChange={(e) => handleNestedSEOChange('twitterCard', 'description', e.target.value)}
+                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs leading-relaxed focus:outline-none"
+                        />
+                      </div>
+                      <AdminImageBlock
+                        label="Twitter In-Card Graphic URL"
+                        description="Custom card graphic thumbnail URL"
+                        value={currentSeo.twitterCard?.image || ''}
+                        onChange={(val) => handleNestedSEOChange('twitterCard', 'image', val)}
+                      />
+                    </div>
+                  )}
+
+                  {selectedSeoTab === 'linkedin' && (
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-bold text-[#004D40] font-sans border-b border-slate-50 pb-2">LinkedIn Post Card Snippets</h3>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">LinkedIn Post Title</label>
+                        <input 
+                          type="text" 
+                          value={currentSeo.linkedin?.title || ''}
+                          onChange={(e) => handleNestedSEOChange('linkedin', 'title', e.target.value)}
+                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Post Snippet Description</label>
+                        <textarea 
+                          rows={3}
+                          value={currentSeo.linkedin?.description || ''}
+                          onChange={(e) => handleNestedSEOChange('linkedin', 'description', e.target.value)}
+                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs leading-relaxed focus:outline-none"
+                        />
+                      </div>
+                      <AdminImageBlock
+                        label="LinkedIn Cover Image URL"
+                        description="Shared landscape graphic design URL optimized for LinkedIn professional feed formats"
+                        value={currentSeo.linkedin?.image || ''}
+                        onChange={(val) => handleNestedSEOChange('linkedin', 'image', val)}
+                      />
+                    </div>
+                  )}
+
+                  {selectedSeoTab === 'facebook' && (
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-bold text-[#004D40] font-sans border-b border-slate-50 pb-2">Facebook Shared Feed Previews</h3>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Facebook Post Title</label>
+                        <input 
+                          type="text" 
+                          value={currentSeo.facebook?.title || ''}
+                          onChange={(e) => handleNestedSEOChange('facebook', 'title', e.target.value)}
+                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Facebook Subtitle Snippet</label>
+                        <textarea 
+                          rows={3}
+                          value={currentSeo.facebook?.description || ''}
+                          onChange={(e) => handleNestedSEOChange('facebook', 'description', e.target.value)}
+                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs leading-relaxed focus:outline-none"
+                        />
+                      </div>
+                      <AdminImageBlock
+                        label="Facebook Shared Image Cover"
+                        description="Shared imagery landscape wallpaper URL optimized for Facebook timelines"
+                        value={currentSeo.facebook?.image || ''}
+                        onChange={(val) => handleNestedSEOChange('facebook', 'image', val)}
+                      />
+                    </div>
+                  )}
                 </div>
 
-                <div className="bg-[#004D40]/5 rounded-3xl p-6 border border-[#10B981]/20 space-y-2">
-                  <h5 className="text-[11px] font-bold text-[#004D40] uppercase tracking-widest flex items-center gap-1.5 pl-1 font-serif">
-                    <Sparkles size={11} className="text-[#10B981]" /> Intelligent SEO Indexer
-                  </h5>
-                  <p className="text-[11px] text-slate-600 leading-relaxed pr-6">Your descriptions meet global index metadata density thresholds perfectly. Changes will be immediately injected into structural JSON-LD schemas.</p>
+                {/* Previews / Live-Demo Column */}
+                <div className="space-y-6">
+                  {/* Global (Google) Preview */}
+                  {selectedSeoTab === 'global' && (
+                    <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-mono">Google SERP Preview (Desktop)</h4>
+                      <div className="p-5 bg-white border border-slate-200 rounded-2xl space-y-2 text-left text-xs font-sans">
+                        <div className="text-slate-500 text-[10px] truncate">{currentSeo.canonicalUrl || 'https://nisaidrisi-consulting.co.uk'}</div>
+                        <a className="text-[#1a0dab] hover:underline text-base font-medium leading-tight block truncate">
+                          {currentSeo.metaTitle || 'Nisa Idrisi | Executive Strategic Accountant'}
+                        </a>
+                        <p className="text-[#4d5156] leading-relaxed text-[11px] line-clamp-2">
+                          {currentSeo.metaDescription || 'Chartered accountant advisory, offering precision compliance calculation logs and global executive portfolio expansion strategies.'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* WhatsApp/Slack OpenGraph Preview */}
+                  {selectedSeoTab === 'og' && (
+                    <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-mono">OpenGraph Live Feed Preview</h4>
+                      <div className="border border-l-4 border-l-[#10B981] border-slate-200 bg-slate-50 rounded-xl overflow-hidden flex flex-col">
+                        {currentSeo.openGraph?.image && (
+                          <div className="aspect-video bg-slate-205 relative overflow-hidden">
+                            <img src={currentSeo.openGraph.image} alt="OG Thumbnail" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          </div>
+                        )}
+                        <div className="p-4 space-y-1 text-left text-xs">
+                          <p className="font-mono text-[9px] uppercase text-slate-400">{currentSeo.openGraph?.type || 'website'}</p>
+                          <h5 className="font-bold text-slate-800 text-sm line-clamp-1">{currentSeo.openGraph?.title || currentSeo.metaTitle || 'Nisa Idrisi Consulting'}</h5>
+                          <p className="text-slate-500 text-[11px] line-clamp-2 leading-relaxed">{currentSeo.openGraph?.description || currentSeo.metaDescription}</p>
+                          <p className="text-slate-400 text-[9px] font-mono">{currentSeo.openGraph?.url || currentSeo.canonicalUrl || 'nisaidrisi-consulting.co.uk'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Twitter Preview */}
+                  {selectedSeoTab === 'twitter' && (
+                    <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-mono">Twitter / X Card Preview</h4>
+                      <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white text-left text-xs">
+                        {currentSeo.twitterCard?.image && currentSeo.twitterCard?.cardType !== 'summary' ? (
+                          <div className="aspect-video bg-slate-200 relative overflow-hidden">
+                            <img src={currentSeo.twitterCard.image} alt="Twitter Cover" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          </div>
+                        ) : null}
+                        
+                        <div className="p-3 flex items-start gap-3">
+                          {currentSeo.twitterCard?.image && currentSeo.twitterCard?.cardType === 'summary' && (
+                            <div className="w-16 h-16 bg-slate-200 rounded-lg overflow-hidden flex-shrink-0">
+                              <img src={currentSeo.twitterCard.image} alt="Twitter Square" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            </div>
+                          )}
+                          <div className="space-y-1">
+                            <p className="text-[10px] text-slate-400 font-mono">nisaidrisi-consulting.co.uk</p>
+                            <h5 className="font-bold text-slate-900 text-[13px] leading-snug line-clamp-1">{currentSeo.twitterCard?.title || currentSeo.metaTitle || 'Nisa Idrisi Strategic Finance'}</h5>
+                            <p className="text-slate-500 text-[11px] line-clamp-2 leading-relaxed">{currentSeo.twitterCard?.description || currentSeo.metaDescription}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* LinkedIn Preview */}
+                  {selectedSeoTab === 'linkedin' && (
+                    <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-mono">LinkedIn In-Feed Card Preview</h4>
+                      <div className="border border-slate-200 rounded bg-white text-left text-xs">
+                        <div className="p-3 flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-[#004D40] text-white flex items-center justify-center font-extrabold text-[10px]">NI</div>
+                          <div>
+                            <p className="font-bold text-slate-800 text-[11px]">Nisa Idrisi</p>
+                            <p className="text-slate-400 text-[9px]">Strategic Financial Executive | Chartered Accountant</p>
+                          </div>
+                        </div>
+                        {currentSeo.linkedin?.image && (
+                          <div className="aspect-video bg-slate-150 relative overflow-hidden">
+                            <img src={currentSeo.linkedin.image} alt="LinkedIn landscape" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          </div>
+                        )}
+                        <div className="p-3.5 bg-slate-100 border-t border-slate-150 space-y-1">
+                          <h5 className="font-bold text-slate-800 text-xs truncate">{currentSeo.linkedin?.title || currentSeo.metaTitle}</h5>
+                          <p className="text-slate-500 text-[10px] truncate">{currentSeo.linkedin?.description || currentSeo.metaDescription}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Facebook Preview */}
+                  {selectedSeoTab === 'facebook' && (
+                    <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-mono">Facebook Feed Snippet Preview</h4>
+                      <div className="border border-slate-200 rounded-lg bg-white text-left text-xs shadow-sm">
+                        <div className="p-3 flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-[#1e3a8a] text-white flex items-center justify-center font-bold text-[10px]">N</div>
+                          <div>
+                            <p className="font-bold text-slate-805 text-[11px]">Nisa Idrisi Executive Consulting</p>
+                            <p className="text-slate-400 text-[8px] font-mono">Sponsored · 🌐</p>
+                          </div>
+                        </div>
+                        {currentSeo.facebook?.image && (
+                          <div className="aspect-video bg-slate-200 relative overflow-hidden">
+                            <img src={currentSeo.facebook.image} alt="Facebook timeline cover" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          </div>
+                        )}
+                        <div className="p-3.5 bg-slate-50 border-t border-slate-150 space-y-1">
+                          <p className="text-[10px] text-slate-400 uppercase font-mono tracking-wide">NISAIDRISI-CONSULTING.CO.UK</p>
+                          <h5 className="font-bold text-slate-800 text-xs truncate">{currentSeo.facebook?.title || currentSeo.metaTitle}</h5>
+                          <p className="text-slate-550 text-[10.5px] line-clamp-1">{currentSeo.facebook?.description || currentSeo.metaDescription}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Universal tips card */}
+                  <div className="bg-[#004D40]/5 rounded-3xl p-6 border border-[#10B981]/15 space-y-2 text-left">
+                    <h5 className="text-[11px] font-bold text-[#004D40] uppercase tracking-widest flex items-center gap-1.5 pl-1 font-serif">
+                      <Sparkles size={11} className="text-[#10B981]" /> Enterprise Schema Ready
+                    </h5>
+                    <p className="text-[10px] text-slate-600 leading-relaxed">
+                      Changes made across these tabs will automatically populate the local OpenGraph meta header cards, standard search indices, and structural Schema.org JSON-LD elements layout in live production builds.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

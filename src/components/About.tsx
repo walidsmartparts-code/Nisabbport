@@ -50,7 +50,7 @@ export default function About() {
               {/* Overlay with subtle lighting */}
               <div className="absolute inset-0 bg-teal/5 pointer-events-none" />
               <img
-                src={nisaDeskPortrait}
+                src={data.images?.about?.image || nisaDeskPortrait}
                 alt="Nisa Idrisi sitting at her executive consulting workspace"
                 className="w-full h-auto object-cover rounded-[32px] hover:scale-105 transition-transform duration-700 aspect-[4/3] sm:aspect-auto"
                 referrerPolicy="no-referrer"

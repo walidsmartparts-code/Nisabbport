@@ -43,7 +43,7 @@ export default function WhyChooseMe({ onOpenConsultation }: WhyChooseMeProps) {
             <div className="absolute inset-0 bg-teal/5 rounded-[32px] blur-3xl pointer-events-none" />
             <div className="relative rounded-[32px] overflow-hidden shadow-2xl bg-teal-dark/10 border-2 border-slate-100">
               <img
-                src={nisaDeskPortrait}
+                src={data.images?.expertise?.image || nisaDeskPortrait}
                 alt="Executive Strategic Consultant Nisa Idrisi"
                 className="w-full h-auto object-cover rounded-[32px] aspect-[4/3] sm:aspect-auto"
                 referrerPolicy="no-referrer"

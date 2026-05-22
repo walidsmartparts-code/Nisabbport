@@ -37,6 +37,13 @@ export default function Hero({ onOpenConsultation }: HeroProps) {
       id="home" 
       className="relative pt-24 md:pt-32 pb-20 md:pb-32 bg-gradient-to-b from-teal via-teal-dark to-slate-50 text-white overflow-hidden"
     >
+      {/* Dynamic customizable background image overlay */}
+      {data.images?.hero?.backgroundImage && (
+        <div 
+          className="absolute inset-0 opacity-15 pointer-events-none bg-cover bg-center mix-blend-overlay"
+          style={{ backgroundImage: `url(${data.images.hero.backgroundImage})` }}
+        />
+      )}
       {/* Dynamic Background Glow Layer */}
       <div className="absolute top-0 right-0 w-[50%] h-[60%] bg-emerald-accent/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-10 left-10 w-[30%] h-[30%] bg-teal-light/20 rounded-full blur-[100px] pointer-events-none" />
@@ -165,7 +172,7 @@ export default function Hero({ onOpenConsultation }: HeroProps) {
               <div className="absolute inset-0 bg-gradient-to-t from-teal-dark/60 via-transparent to-transparent z-10" />
               
               <img
-                src={nisaHeroPortrait}
+                src={data.images?.hero?.mainImage || nisaHeroPortrait}
                 alt="Portrait of Strategic Finance Executive Nisa Idrisi"
                 className="w-full h-full object-cover object-center"
                 referrerPolicy="no-referrer"
