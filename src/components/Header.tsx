@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, ArrowRight, Check } from 'lucide-react';
+import { useWebsiteData } from '../context/WebsiteDataContext';
 
 interface HeaderProps {
   onOpenConsultation: (serviceId?: string) => void;
@@ -9,7 +10,9 @@ export default function Header({ onOpenConsultation }: HeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
-  const [scheduledCount, setScheduledCount] = useState(0);
+  const { data } = useWebsiteData();
+  const settings = data.settings || {};
+  const scheduledCount = data.leads?.length || 0;
 
   // Monitor scroll state for styling and active item highlights
   useEffect(() => {
@@ -34,26 +37,8 @@ export default function Header({ onOpenConsultation }: HeaderProps) {
     };
 
     window.addEventListener('scroll', handleScroll);
-    
-    // Fetch local booking count for dynamic indicator
-    const updateBookingCount = () => {
-      const stored = localStorage.getItem('nisa_consultations');
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          setScheduledCount(parsed.length);
-        } catch {
-          // ignore error
-        }
-      }
-    };
-
-    updateBookingCount();
-    window.addEventListener('nisa_booking_updated', updateBookingCount);
-
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('nisa_booking_updated', updateBookingCount);
     };
   }, []);
 
@@ -95,8 +80,8 @@ export default function Header({ onOpenConsultation }: HeaderProps) {
                 NI
               </div>
               <div>
-                <span className="text-white text-lg font-bold tracking-tight block leading-none">
-                  Nisa Idrisi
+                <span className="text-white text-lg font-bold tracking-tight block leading-none text-white">
+                  {settings.siteTitle || 'Nisa Idrisi'}
                 </span>
                 <span className="text-[10px] text-emerald-accent font-medium tracking-widest uppercase block mt-1">
                   Chartered & Strategic Finance

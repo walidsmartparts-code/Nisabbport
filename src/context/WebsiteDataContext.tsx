@@ -1,0 +1,625 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Service, Testimonial, FAQItem, Industry, Booking } from '../types';
+import { SERVICES, TESTIMONIALS, FAQS, INDUSTRIES } from '../data';
+
+// Types for Blog & Portfolio Posts
+export interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  content: string; // Markdown
+  excerpt: string;
+  author: string;
+  category: string;
+  tags: string[];
+  featuredImage: string;
+  status: 'published' | 'draft';
+  publishedAt: string;
+  views: number;
+}
+
+export interface PortfolioProject {
+  id: string;
+  title: string;
+  client: string;
+  category: string;
+  image: string;
+  metric: string;
+  metricLabel: string;
+  description: string;
+  status: 'published' | 'draft';
+}
+
+export interface SEOInfo {
+  metaTitle: string;
+  metaDescription: string;
+  openGraphTitle: string;
+  openGraphDescription: string;
+  openGraphImage: string;
+  twitterCard: 'summary' | 'summary_large_image';
+  canonicalUrl: string;
+}
+
+export interface GlobalSettings {
+  siteTitle: string;
+  faviconUrl: string;
+  logoText: string;
+  contactEmail: string;
+  contactPhone: string;
+  businessAddress: string;
+  facebookUrl: string;
+  linkedinUrl: string;
+  twitterUrl: string;
+  brandPrimaryColor: string;
+  brandAccentColor: string;
+  isMaintenanceMode: boolean;
+}
+
+export interface MediaFile {
+  id: string;
+  name: string;
+  url: string;
+  size: string;
+  type: string;
+  uploadedAt: string;
+}
+
+export interface AuditLog {
+  id: string;
+  timestamp: string;
+  ip: string;
+  action: string;
+  status: 'success' | 'failed';
+  details: string;
+}
+
+export interface PageAnalytics {
+  views: number;
+  uniqueVisitors: number;
+  bounceRate: number;
+  ctr: number;
+  desktopPercent: number;
+  mobilePercent: number;
+  tabletPercent: number;
+  trafficSources: { source: string; count: number; percent: number }[];
+  timelineData: { date: string; views: number; actions: number }[];
+}
+
+export interface WebsiteContent {
+  headerText: string;
+  headerCtaLabel: string;
+  heroHeadline: string;
+  heroHighlightedWord: string;
+  heroSubtitle: string;
+  heroCtaText: string;
+  heroBadgeText: string;
+  heroFloatingCard1Title: string;
+  heroFloatingCard2Title: string;
+  heroFloatingCard2Value: string;
+  aboutBiography: string;
+  aboutQualifications: string[];
+  aboutAchievements: string[];
+  aboutExperienceYears: string;
+  aboutAssetsLabel: string;
+  whyChooseMeTitle: string;
+  whyChooseMeSubtitle: string;
+  ctaHeading: string;
+  ctaSubtext: string;
+  ctaButtonText: string;
+  footerText: string;
+}
+
+export interface FullWebsiteState {
+  content: WebsiteContent;
+  services: Service[];
+  industries: Industry[];
+  testimonials: Testimonial[];
+  faqs: FAQItem[];
+  blogs: BlogPost[];
+  portfolio: PortfolioProject[];
+  seo: SEOInfo;
+  settings: GlobalSettings;
+  media: MediaFile[];
+  leads: Booking[];
+  analytics: PageAnalytics;
+}
+
+interface WebsiteDataContextType {
+  data: FullWebsiteState;          // Published active state
+  draftData: FullWebsiteState;     // Workspace state under edit
+  hasChanges: boolean;
+  saveDraft: (updatedDraft: Partial<FullWebsiteState> | ((prev: FullWebsiteState) => FullWebsiteState)) => void;
+  publishDraft: () => void;
+  undoChanges: () => void;
+  resetToDefault: () => void;
+  
+  // Custom single operations
+  addLead: (lead: Omit<Booking, 'id' | 'createdAt' | 'status'>) => void;
+  updateLeadStatus: (id: string, status: 'pending' | 'confirmed') => void;
+  addBlogPost: (post: Omit<BlogPost, 'id' | 'publishedAt' | 'views'>) => void;
+  editBlogPost: (id: string, post: Partial<BlogPost>) => void;
+  deleteBlogPost: (id: string) => void;
+  addProject: (project: Omit<PortfolioProject, 'id'>) => void;
+  editProject: (id: string, project: Partial<PortfolioProject>) => void;
+  deleteProject: (id: string) => void;
+  addMediaFile: (file: Omit<MediaFile, 'id' | 'uploadedAt'>) => void;
+  deleteMediaFile: (id: string) => void;
+  
+  // Security log handlers
+  logs: AuditLog[];
+  addLog: (log: Omit<AuditLog, 'id' | 'timestamp'>) => void;
+  purgeCdnCache: () => Promise<boolean>;
+}
+
+const WebsiteDataContext = createContext<WebsiteDataContextType | undefined>(undefined);
+
+const DEFAULT_CONTENT: WebsiteContent = {
+  headerText: 'NISA IDRISI',
+  headerCtaLabel: 'Book Consultation',
+  heroHeadline: 'Strategic Wealth Redefined',
+  heroHighlightedWord: 'Redefined.',
+  heroSubtitle: 'High-level financial strategy and HMRC compliance for global executives, SMEs, and international investors. Delivering growth through precision and expertise.',
+  heroCtaText: 'Start Strategy Session',
+  heroBadgeText: 'Finance Executive & Consultant',
+  heroFloatingCard1Title: 'HMRC Compliant',
+  heroFloatingCard2Title: 'Portfolio Growth',
+  heroFloatingCard2Value: '+24.8%',
+  aboutBiography: 'Affiliated with RCi Chartered Accountants and Revolo Capital, Nisa brings over 15 years of world-class, rigorous, and multi-jurisidictional accounting experience to your business.',
+  aboutQualifications: [
+    'Fellow of Chartered Certified Accountants (FCCA)',
+    'HMRC Licensed Statutory Tax Advisor',
+    'Trust & Estate Practitioner (TEP) Board Associate',
+    'BSc (Hons) in International Corporate Finance'
+  ],
+  aboutAchievements: [
+    'Managed audit advisory workflows representing portfolio assets in excess of £2B',
+    'Spearheaded global structural audits for 250+ enterprise SMEs and developers',
+    'Established Revolo Capital Cross-Border SME Structuring Advisory guidelines'
+  ],
+  aboutExperienceYears: '15+',
+  aboutAssetsLabel: '£2B+',
+  whyChooseMeTitle: 'A Blueprint for Absolute Prosperity',
+  whyChooseMeSubtitle: 'Combining global sovereign fund analytical rigor with precise, local UK private ledger execution.',
+  ctaHeading: 'Ready to Redefine Your Financial Architecture?',
+  ctaSubtext: 'Unlock strategic growth blueprints, robust HMRC tax shelter solutions, and optimized balance sheet structure templates with a direct private advisory session.',
+  ctaButtonText: 'Schedule My Private Session',
+  footerText: 'Licensed UK Statutory Tax Counsel. Operating under the RCi Chartered Accountants, registered and compliant in England & Wales.'
+};
+
+const DEFAULT_SEO: SEOInfo = {
+  metaTitle: 'Nisa Idrisi | Strategic Wealth Finance Executive & Compliance Advisory',
+  metaDescription: 'High-level corporate accounting, statutory HMRC auditing, and strategic tax planning for SMEs, global executives, and real estate portfolios.',
+  openGraphTitle: 'Nisa Idrisi - Strategic Corporate Wealth Redefined',
+  openGraphDescription: 'Executive tax advisory, compliance checklists, and high-net-worth portfolio optimization.',
+  openGraphImage: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80',
+  twitterCard: 'summary_large_image',
+  canonicalUrl: 'https://nisaidrisi-consulting.co.uk'
+};
+
+const DEFAULT_SETTINGS: GlobalSettings = {
+  siteTitle: 'Nisa Idrisi Advisory',
+  faviconUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=32&h=32&q=80',
+  logoText: 'NISA IDRISI',
+  contactEmail: 'advisory@nisaidrisi.com',
+  contactPhone: '+44 20 7946 0192',
+  businessAddress: '72 Mayfair Court, London, W1J 8DJ, United Kingdom',
+  facebookUrl: 'https://facebook.com/nisa.idrisi.wealth',
+  linkedinUrl: 'https://linkedin.com/in/nisa-idrisi-fcca',
+  twitterUrl: 'https://twitter.com/nisa_wealth',
+  brandPrimaryColor: '#004D40',
+  brandAccentColor: '#10B981',
+  isMaintenanceMode: false
+};
+
+const INITIAL_BLOGS: BlogPost[] = [
+  {
+    id: 'blog-1',
+    title: 'Maximizing R&D Tax Credits for Tech Startups',
+    slug: 'maximizing-rd-tax-credits',
+    excerpt: 'A comprehensive walkthrough on qualifying software costs, claiming maximum expenditure offsets, and surviving HMRC scrutinies.',
+    content: `# Maximizing R&D Tax Credits for Tech Startups\n\nResearch and Development (R&D) Tax Credits represent one of the most powerful cash-generating mechanisms available to innovative UK businesses. In 2026, the updated HMRC RIC guidelines redefine what qualifies as developmental software testing and prototyping.\n\n### What qualifies under software R&D?\n\n1. **Unresolved Technical Uncertainties**: You are attempting to resolve a challenge that standard commercial frameworks cannot easily address.\n2. **Custom Database Engines**: Real-time scalable algorithms that improve data processing latencies under high overheads.\n3. **Unique Cryptographic Layering**: Implementing non-standard high-fidelity security standards.\n\n### The Claim Checklist\n\n- Quantify exact technical staff hours (PAYE vs. subcontractor costs).\n- Document the 'technical uncertainty' baseline prior to launching development.\n- Write clear technical summaries outlining the innovative leaps.\n\nEnsure your bookkeeping tools allocate ledger streams dedicated entirely to active innovation channels to survive HMRC audit loops seamlessly.`,
+    author: 'Nisa Idrisi, FCCA',
+    category: 'Tax Strategy',
+    tags: ['R&D Claims', 'Startup Finance', 'Tax Relief'],
+    featuredImage: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80',
+    status: 'published',
+    publishedAt: '2026-05-18T10:30:00Z',
+    views: 142
+  },
+  {
+    id: 'blog-2',
+    title: 'The Shift to Multi-Jurisdiction Portfolios',
+    slug: 'multi-jurisdiction-portfolios',
+    excerpt: 'How global investors balance double tax treaties, dynamic offshore holding structures, and UK status changes.',
+    content: `# The Shift to Multi-Jurisdiction Portfolios\n\nCross-border investment holds incredible benefits, but introduces high exposure if not structured correctly.\n\n### Double Tax Treaties (DTTs)\n\nUK investors leveraging double-tax arrangements benefit from offset credits that prevent paying sovereign duties on the same financial stream twice. To claim these properly, you must prove local tax residency.\n\n### Recommended Best Practices\n- Incorporate dedicated holding companies in compliant OECD jurisdictions.\n- Track actual days spent inside the UK to assert correct statutory residency tests.\n- Retain transparent double-entry verification layers at the advisory level.`,
+    author: 'Nisa Idrisi, FCCA',
+    category: 'Portfolios',
+    tags: ['Double Taxation', 'Wealth Protection', 'Global Wealth'],
+    featuredImage: 'https://images.unsplash.com/photo-1544377193-33dcf4d68fb5?auto=format&fit=crop&w=800&q=80',
+    status: 'published',
+    publishedAt: '2026-05-20T14:15:00Z',
+    views: 98
+  }
+];
+
+const INITIAL_PROJECTS: PortfolioProject[] = [
+  {
+    id: 'proj-1',
+    title: 'Tax Refactor & Multi-Channel Optimization',
+    client: 'LuxVogue Ltd',
+    category: 'E-commerce',
+    image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=800&q=80',
+    metric: '£120,000',
+    metricLabel: 'Annual Legal Savings',
+    description: 'Reassigned double VAT liability on cross-border dropshipping setups under updated post-Brexit marketplace regulations.',
+    status: 'published'
+  },
+  {
+    id: 'proj-2',
+    title: 'Seed Funding Structural Alignment Study',
+    client: 'Revolo Capital Venture',
+    category: 'Fintech',
+    image: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=800&q=80',
+    metric: '£4.5M',
+    metricLabel: 'Seed Capital Secured',
+    description: 'Engineered corporate equity allocation tables and verified regulatory compliance matrices ahead of audit checks.',
+    status: 'published'
+  }
+];
+
+const INITIAL_MEDIA: MediaFile[] = [
+  {
+    id: 'media-1',
+    name: 'nisa_portrait_mayfair.jpg',
+    url: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=600&h=800&q=80',
+    size: '1.4 MB',
+    type: 'image/jpeg',
+    uploadedAt: '2026-05-15T09:00:00Z'
+  },
+  {
+    id: 'media-2',
+    name: 'valuation_chart_revolo.png',
+    url: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80',
+    size: '840 KB',
+    type: 'image/png',
+    uploadedAt: '2026-05-18T11:20:00Z'
+  },
+  {
+    id: 'media-3',
+    name: 'finflow_office_london.jpg',
+    url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
+    size: '2.1 MB',
+    type: 'image/jpeg',
+    uploadedAt: '2026-05-19T15:40:00Z'
+  }
+];
+
+const INITIAL_LEADS: Booking[] = [
+  {
+    id: 'lead-1',
+    name: 'Alexander Rostova',
+    email: 'arost@rostovatech.com',
+    company: 'Rostova Tech Group',
+    service: 'strategic-planning',
+    date: '2026-06-03',
+    time: '14:00',
+    notes: 'Looking to audit cross-border ledger guidelines prior to expanding operations into Central Europe markets.',
+    status: 'pending',
+    createdAt: '2026-05-21T11:45:00Z'
+  },
+  {
+    id: 'lead-2',
+    name: 'Fiona Gallagher',
+    email: 'fiona@gallagher-estates.co.uk',
+    company: 'Gallagher Real Estate',
+    service: 'tax-optimization',
+    date: '2026-06-05',
+    time: '10:30',
+    notes: 'Urgent inquiry regarding tax exemptions on inheritance structure expansions for trust properties.',
+    status: 'confirmed',
+    createdAt: '2026-05-22T08:12:00Z'
+  }
+];
+
+const INITIAL_ANALYTICS: PageAnalytics = {
+  views: 8432,
+  uniqueVisitors: 3120,
+  bounceRate: 41.2,
+  ctr: 14.8,
+  desktopPercent: 64,
+  mobilePercent: 31,
+  tabletPercent: 5,
+  trafficSources: [
+    { source: 'LinkedIn Direct', count: 1840, percent: 59 },
+    { source: 'Google Search Organics', count: 720, percent: 23 },
+    { source: 'RCi Directory Referral', count: 320, percent: 10 },
+    { source: 'Financial Times Insights', count: 240, percent: 8 }
+  ],
+  timelineData: [
+    { date: 'May 16', views: 820, actions: 92 },
+    { date: 'May 17', views: 940, actions: 110 },
+    { date: 'May 18', views: 1200, actions: 145 },
+    { date: 'May 19', views: 1150, actions: 130 },
+    { date: 'May 20', views: 1450, actions: 180 },
+    { date: 'May 21', views: 1542, actions: 210 },
+    { date: 'May 22', views: 1330, actions: 172 }
+  ]
+};
+
+const INITIAL_LOGS: AuditLog[] = [
+  { id: 'log-1', timestamp: '2026-05-22T09:12:00Z', ip: '185.120.44.12', action: 'Admin System Reset Initiated', status: 'success', details: 'Database schema reset cleanly' },
+  { id: 'log-2', timestamp: '2026-05-22T14:32:00Z', ip: '92.42.110.154', action: 'Failed Credentials Attempt', status: 'failed', details: 'Invalid username: master_ad' },
+  { id: 'log-3', timestamp: '2026-05-22T16:01:00Z', ip: '82.35.91.24', action: 'Successful Authentication', status: 'success', details: 'Admitted using username and password: [admin]' }
+];
+
+const INITIAL_STATE: FullWebsiteState = {
+  content: DEFAULT_CONTENT,
+  services: SERVICES,
+  industries: INDUSTRIES,
+  testimonials: TESTIMONIALS,
+  faqs: FAQS,
+  blogs: INITIAL_BLOGS,
+  portfolio: INITIAL_PROJECTS,
+  seo: DEFAULT_SEO,
+  settings: DEFAULT_SETTINGS,
+  media: INITIAL_MEDIA,
+  leads: INITIAL_LEADS,
+  analytics: INITIAL_ANALYTICS
+};
+
+export const WebsiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [data, setData] = useState<FullWebsiteState>(() => {
+    const saved = localStorage.getItem('nisa_website_data');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (err) {
+        console.error('Failed to parse saved website data, resetting to template state', err);
+      }
+    }
+    return INITIAL_STATE;
+  });
+
+  const [draftData, setDraftData] = useState<FullWebsiteState>(data);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [logs, setLogs] = useState<AuditLog[]>(() => {
+    const saved = localStorage.getItem('nisa_audit_logs');
+    return saved ? JSON.parse(saved) : INITIAL_LOGS;
+  });
+
+  // Track if current draft state is different from published state
+  useEffect(() => {
+    const isDifferent = JSON.stringify(data) !== JSON.stringify(draftData);
+    setHasChanges(isDifferent);
+  }, [data, draftData]);
+
+  // Persist logs in localStorage
+  useEffect(() => {
+    localStorage.setItem('nisa_audit_logs', JSON.stringify(logs));
+  }, [logs]);
+
+  // Auto-track passive visual analytics on startup/visitor views
+  useEffect(() => {
+    // Increment stats count on loading the page
+    setTimeout(() => {
+      setData(prev => {
+        const next = {
+          ...prev,
+          analytics: {
+            ...prev.analytics,
+            views: prev.analytics.views + 1
+          }
+        };
+        localStorage.setItem('nisa_website_data', JSON.stringify(next));
+        return next;
+      });
+    }, 1000);
+  }, []);
+
+  const saveDraft = (updatedDraft: Partial<FullWebsiteState> | ((prev: FullWebsiteState) => FullWebsiteState)) => {
+    setDraftData(prev => {
+      const next = typeof updatedDraft === 'function' ? updatedDraft(prev) : { ...prev, ...updatedDraft };
+      return next;
+    });
+  };
+
+  const publishDraft = () => {
+    setData(draftData);
+    localStorage.setItem('nisa_website_data', JSON.stringify(draftData));
+    addLog({
+      ip: '127.0.0.1 (Local Session)',
+      action: 'Publish Changes',
+      status: 'success',
+      details: 'All changes in sections draft were pushed live.'
+    });
+  };
+
+  const undoChanges = () => {
+    setDraftData(data);
+  };
+
+  const resetToDefault = () => {
+    setDraftData(INITIAL_STATE);
+    setData(INITIAL_STATE);
+    localStorage.setItem('nisa_website_data', JSON.stringify(INITIAL_STATE));
+    addLog({
+      ip: '127.0.0.1',
+      action: 'Reset Entire Project',
+      status: 'success',
+      details: 'Website reverted to sovereign system templates.'
+    });
+  };
+
+  // Dedicated atomic handlers for components
+  const addLead = (lead: Omit<Booking, 'id' | 'createdAt' | 'status'>) => {
+    const newLead: Booking = {
+      ...lead,
+      id: `lead-${Date.now()}`,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+    
+    // Update both draft and production state because leads are transaction logs submitted by consumers
+    const appendLead = (prev: FullWebsiteState) => ({
+      ...prev,
+      leads: [newLead, ...prev.leads],
+      analytics: {
+        ...prev.analytics,
+        timelineData: prev.analytics.timelineData.map((d, idx) => 
+          idx === prev.analytics.timelineData.length - 1 
+            ? { ...d, actions: d.actions + 1 } 
+            : d
+        )
+      }
+    });
+
+    setData(prev => {
+      const next = appendLead(prev);
+      localStorage.setItem('nisa_website_data', JSON.stringify(next));
+      return next;
+    });
+    setDraftData(prev => appendLead(prev));
+  };
+
+  const updateLeadStatus = (id: string, status: 'pending' | 'confirmed') => {
+    const editLeads = (prev: FullWebsiteState) => ({
+      ...prev,
+      leads: prev.leads.map(l => l.id === id ? { ...l, status } : l)
+    });
+    
+    // Changes applied directly to draft and live leads database
+    setData(prev => {
+      const next = editLeads(prev);
+      localStorage.setItem('nisa_website_data', JSON.stringify(next));
+      return next;
+    });
+    setDraftData(prev => editLeads(prev));
+  };
+
+  const addBlogPost = (post: Omit<BlogPost, 'id' | 'publishedAt' | 'views'>) => {
+    const newPost: BlogPost = {
+      ...post,
+      id: `blog-${Date.now()}`,
+      publishedAt: new Date().toISOString(),
+      views: 0
+    };
+    saveDraft(prev => ({
+      ...prev,
+      blogs: [newPost, ...prev.blogs]
+    }));
+  };
+
+  const editBlogPost = (id: string, post: Partial<BlogPost>) => {
+    saveDraft(prev => ({
+      ...prev,
+      blogs: prev.blogs.map(b => b.id === id ? { ...b, ...post } : b)
+    }));
+  };
+
+  const deleteBlogPost = (id: string) => {
+    saveDraft(prev => ({
+      ...prev,
+      blogs: prev.blogs.filter(b => b.id !== id)
+    }));
+  };
+
+  const addProject = (project: Omit<PortfolioProject, 'id'>) => {
+    const newProj: PortfolioProject = {
+      ...project,
+      id: `proj-${Date.now()}`
+    };
+    saveDraft(prev => ({
+      ...prev,
+      portfolio: [newProj, ...prev.portfolio]
+    }));
+  };
+
+  const editProject = (id: string, project: Partial<PortfolioProject>) => {
+    saveDraft(prev => ({
+      ...prev,
+      portfolio: prev.portfolio.map(p => p.id === id ? { ...p, ...project } : p)
+    }));
+  };
+
+  const deleteProject = (id: string) => {
+    saveDraft(prev => ({
+      ...prev,
+      portfolio: prev.portfolio.filter(p => p.id !== id)
+    }));
+  };
+
+  const addMediaFile = (file: Omit<MediaFile, 'id' | 'uploadedAt'>) => {
+    const newFile: MediaFile = {
+      ...file,
+      id: `media-${Date.now()}`,
+      uploadedAt: new Date().toISOString()
+    };
+    saveDraft(prev => ({
+      ...prev,
+      media: [newFile, ...prev.media]
+    }));
+  };
+
+  const deleteMediaFile = (id: string) => {
+    saveDraft(prev => ({
+      ...prev,
+      media: prev.media.filter(m => m.id !== id)
+    }));
+  };
+
+  const addLog = (log: Omit<AuditLog, 'id' | 'timestamp'>) => {
+    const newLog: AuditLog = {
+      ...log,
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString()
+    };
+    setLogs(prev => [newLog, ...prev]);
+  };
+
+  const purgeCdnCache = async () => {
+    addLog({
+      ip: '127.0.0.1 (Web Core)',
+      action: 'Purge CDN Cloud Cache',
+      status: 'success',
+      details: 'All DNS, static assets & style sheets invalidated globally.'
+    });
+    return true;
+  };
+
+  return (
+    <WebsiteDataContext.Provider
+      value={{
+        data,
+        draftData,
+        hasChanges,
+        saveDraft,
+        publishDraft,
+        undoChanges,
+        resetToDefault,
+        addLead,
+        updateLeadStatus,
+        addBlogPost,
+        editBlogPost,
+        deleteBlogPost,
+        addProject,
+        editProject,
+        deleteProject,
+        addMediaFile,
+        deleteMediaFile,
+        logs,
+        addLog,
+        purgeCdnCache
+      }}
+    >
+      {children}
+    </WebsiteDataContext.Provider>
+  );
+};
+
+export const useWebsiteData = () => {
+  const context = useContext(WebsiteDataContext);
+  if (!context) {
+    throw new Error('useWebsiteData must be used within a WebsiteDataProvider');
+  }
+  return context;
+};

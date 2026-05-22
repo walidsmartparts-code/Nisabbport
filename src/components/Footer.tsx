@@ -1,10 +1,15 @@
 import { Mail, Phone, MapPin, Linkedin, Twitter, Instagram, Globe, Check, Award, ArrowRight } from 'lucide-react';
+import { useWebsiteData } from '../context/WebsiteDataContext';
 
 interface FooterProps {
   onOpenConsultation: () => void;
 }
 
 export default function Footer({ onOpenConsultation }: FooterProps) {
+  const { data } = useWebsiteData();
+  const settings = data.settings || {};
+  const content = data.content || {};
+
   const scrollSection = (id: string) => {
     const el = document.getElementById(id);
     if (el) {
@@ -30,7 +35,7 @@ export default function Footer({ onOpenConsultation }: FooterProps) {
               </div>
               <div>
                 <span className="text-white text-base font-bold tracking-tight block leading-none">
-                  Nisa Idrisi
+                  {settings.siteTitle || 'Nisa Idrisi'}
                 </span>
                 <span className="text-[9px] text-emerald-accent font-medium tracking-widest uppercase block mt-1">
                   Chartered & Strategic Finance
@@ -45,10 +50,9 @@ export default function Footer({ onOpenConsultation }: FooterProps) {
             {/* Premium Social Circles */}
             <div className="flex gap-3">
               {[
-                { icon: Linkedin, href: 'https://linkedin.com' },
-                { icon: Twitter, href: 'https://twitter.com' },
-                { icon: Instagram, href: 'https://instagram.com' },
-                { icon: Globe, href: 'https://rci-accountants.com' }
+                { icon: Linkedin, href: settings.linkedinUrl || 'https://linkedin.com' },
+                { icon: Twitter, href: settings.twitterUrl || 'https://twitter.com' },
+                { icon: Globe, href: settings.facebookUrl || 'https://facebook.com' }
               ].map((soc, idx) => {
                 const IconComp = soc.icon;
                 return (
@@ -76,7 +80,6 @@ export default function Footer({ onOpenConsultation }: FooterProps) {
                 { label: 'Home Page', id: 'home' },
                 { label: 'About Nisa', id: 'about' },
                 { label: 'Advisory Services', id: 'services' },
-                { label: 'Core Expertise', id: 'expertise' },
                 { label: 'Client Feedback', id: 'testimonials' },
                 { label: 'Contact / FAQ', id: 'faq' }
               ].map((link, idx) => (
@@ -122,21 +125,20 @@ export default function Footer({ onOpenConsultation }: FooterProps) {
             <ul className="space-y-3.5 text-xs font-light text-white/80">
               <li className="flex items-start gap-2.5">
                 <MapPin size={14} className="text-emerald-accent shrink-0 mt-0.5" />
-                <span>
-                  London Office, <br />
-                  United Kingdom
+                <span className="break-all">
+                  {settings.businessAddress || 'London Office, United Kingdom'}
                 </span>
               </li>
               <li className="flex items-center gap-2.5 bg-white/5 border border-white/5 p-2 rounded-xl">
                 <Mail size={14} className="text-emerald-accent shrink-0" />
-                <a href="mailto:nisa@rci-accountants.com" className="hover:text-emerald-accent transition-colors font-medium break-all text-[11px]">
-                  nisa.idrisi@rci.com
+                <a href={`mailto:${settings.contactEmail || 'advisory@nisaidrisi.com'}`} className="hover:text-emerald-accent transition-colors font-medium break-all text-[11px]">
+                  {settings.contactEmail || 'advisory@nisaidrisi.com'}
                 </a>
               </li>
               <li className="flex items-center gap-2.5">
                 <Phone size={14} className="text-emerald-accent shrink-0" />
-                <a href="tel:+447700900077" className="hover:text-emerald-accent transition-colors font-medium">
-                  +44 7700 900077
+                <a href={`tel:${settings.contactPhone || '+447700900077'}`} className="hover:text-emerald-accent transition-colors font-medium">
+                  {settings.contactPhone || '+44 7700 900077'}
                 </a>
               </li>
             </ul>
@@ -156,7 +158,7 @@ export default function Footer({ onOpenConsultation }: FooterProps) {
 
         {/* Footnote Licensing Info */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-white/50 font-light font-roboto">
-          <p>© 2026 Nisa Idrisi. All rights reserved globally.</p>
+          <p>{content.footerText || '© 2026 Nisa Idrisi. All rights reserved globally.'}</p>
           <div className="flex gap-6">
             <a href="#about" className="hover:text-emerald-accent">Privacy Policy</a>
             <a href="#services" className="hover:text-emerald-accent">Terms & Conditions</a>

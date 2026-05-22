@@ -1,7 +1,10 @@
 import { Star, Quote } from 'lucide-react';
-import { TESTIMONIALS } from '../data';
+import { useWebsiteData } from '../context/WebsiteDataContext';
 
 export default function Testimonials() {
+  const { data } = useWebsiteData();
+  const testimonialsList = data.testimonials;
+
   // Map static profile image sources to keep them extremely professional and visually clean
   const avatarUrls = [
     'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=120&h=120&q=80', // James Walker male executive
@@ -32,8 +35,8 @@ export default function Testimonials() {
 
         {/* Staggered Modern Bento Grid for cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
-          {TESTIMONIALS.map((t, index) => {
-            const avatar = avatarUrls[index] || `https://picsum.photos/seed/${t.avatarSeed}/120/120`;
+          {testimonialsList.map((t, index) => {
+            const avatar = avatarUrls[index % avatarUrls.length] || `https://picsum.photos/seed/${t.id}/120/120`;
             const isMiddle = index === 1; // Middle card gets slightly different accent or margin staggering
 
             return (

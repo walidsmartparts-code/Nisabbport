@@ -1,11 +1,15 @@
 import { Shield, Sparkles, Award, Users, BookOpen, Clock, CheckCircle2, ArrowRight } from 'lucide-react';
 import nisaDeskPortrait from '../assets/images/nisa_desk_portrait_1779470330129.png';
+import { useWebsiteData } from '../context/WebsiteDataContext';
 
 interface WhyChooseMeProps {
   onOpenConsultation: () => void;
 }
 
 export default function WhyChooseMe({ onOpenConsultation }: WhyChooseMeProps) {
+  const { data } = useWebsiteData();
+  const c = data.content;
+
   const points = [
     {
       icon: Award,

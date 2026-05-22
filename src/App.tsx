@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import About from './components/About';
@@ -10,10 +10,39 @@ import FAQ from './components/FAQ';
 import CTASection from './components/CTASection';
 import Footer from './components/Footer';
 import ConsultationModal from './components/ConsultationModal';
+import AdminDashboard from './components/AdminDashboard';
 
 export default function App() {
   const [isConsultationOpen, setIsConsultationOpen] = useState(false);
   const [preselectedService, setPreselectedService] = useState<string | undefined>(undefined);
+  const [currentPath, setCurrentPath] = useState(window.location.pathname);
+
+  useEffect(() => {
+    const handleLocationChange = () => {
+      setCurrentPath(window.location.pathname);
+    };
+
+    window.addEventListener('popstate', handleLocationChange);
+    // Also support hash changes as a secondary fail-safe fallback
+    const handleHashChange = () => {
+      if (window.location.hash === '#admin') {
+        setCurrentPath('/admin');
+      } else {
+        setCurrentPath(window.location.pathname);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    
+    // Initial check for hash
+    if (window.location.hash === '#admin') {
+      setCurrentPath('/admin');
+    }
+
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
 
   const handleOpenConsultation = (serviceId?: string) => {
     setPreselectedService(serviceId);
@@ -24,6 +53,17 @@ export default function App() {
     setIsConsultationOpen(false);
     setPreselectedService(undefined);
   };
+
+  // Determine if we should show the admin dashboard
+  const isAdminView = currentPath === '/admin' || currentPath.startsWith('/admin/');
+
+  if (isAdminView) {
+    return (
+      <div className="bg-slate-50 text-slate-800 font-sans antialiased selection:bg-emerald-accent/20 h-full min-h-screen">
+        <AdminDashboard />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-slate-50 text-slate-800 font-sans antialiased selection:bg-emerald-accent/20">

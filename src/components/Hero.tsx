@@ -1,12 +1,16 @@
 import { motion } from 'motion/react';
 import { ArrowRight, Star, Shield, Award, Play, ChevronRight, Check } from 'lucide-react';
 import nisaHeroPortrait from '../assets/images/nisa_hero_portrait_1779470310432.png';
+import { useWebsiteData } from '../context/WebsiteDataContext';
 
 interface HeroProps {
   onOpenConsultation: () => void;
 }
 
 export default function Hero({ onOpenConsultation }: HeroProps) {
+  const { data } = useWebsiteData();
+  const c = data.content;
+
   // Stagger wrapper for initial page load
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -53,7 +57,7 @@ export default function Hero({ onOpenConsultation }: HeroProps) {
               className="inline-flex items-center gap-2 bg-white/10 border border-white/10 px-4 py-2 rounded-full text-xs font-semibold tracking-wider text-emerald-accent uppercase"
             >
               <Award size={14} />
-              <span>RCi Chartered Accountants & Revolo Associate</span>
+              <span>{c.heroBadgeText}</span>
             </motion.div>
 
             {/* Strategic Title with High-Contrast Text Highlight */}
@@ -61,10 +65,9 @@ export default function Hero({ onOpenConsultation }: HeroProps) {
               variants={itemVariants}
               className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight font-sans"
             >
-              Strategic Finance <br className="hidden sm:inline" />
-              Expertise That Drives <br className="hidden lg:inline" />
+              {c.heroHeadline} <br className="hidden sm:inline" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-accent to-emerald-accent-light block mt-1 sm:mt-2">
-                Sustainable Growth
+                {c.heroHighlightedWord}
               </span>
             </motion.h1>
 
@@ -73,7 +76,7 @@ export default function Hero({ onOpenConsultation }: HeroProps) {
               variants={itemVariants}
               className="text-base sm:text-lg text-white/80 leading-relaxed max-w-2xl font-light"
             >
-              Providing strategic financial leadership, UK accounting, and HMRC compliance solutions for high-performance businesses and ambitious individual investors across the UK. Protect capital, optimize structures, and expand portfolios safely.
+              {c.heroSubtitle}
             </motion.p>
 
             {/* Premium CTA Row */}
@@ -85,7 +88,7 @@ export default function Hero({ onOpenConsultation }: HeroProps) {
                 onClick={onOpenConsultation}
                 className="bg-emerald-accent hover:bg-emerald-accent-dark text-white px-8 py-4 rounded-xl text-sm font-bold tracking-wider uppercase transition-all duration-300 shadow-xl shadow-emerald-accent/25 hover:shadow-2xl hover:shadow-emerald-accent/45 flex items-center justify-center gap-2.5 group cursor-pointer"
               >
-                <span>Book a Consultation</span>
+                <span>{c.heroCtaText}</span>
                 <ArrowRight size={16} className="group-hover:translate-x-1.5 transition-transform" />
               </button>
 
@@ -137,11 +140,11 @@ export default function Hero({ onOpenConsultation }: HeroProps) {
               {/* Dynamic Sleek Metrics Grid inside Hero column */}
               <div className="flex-1 grid grid-cols-2 gap-3 min-w-[200px]">
                 <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 text-left">
-                  <div className="text-xl font-extrabold text-emerald-accent leading-none">£2B+</div>
+                  <div className="text-xl font-extrabold text-emerald-accent leading-none">{c.aboutAssetsLabel}</div>
                   <div className="text-[9px] font-bold text-white/50 uppercase tracking-widest mt-1 font-serif">Assets Managed</div>
                 </div>
                 <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 text-left">
-                  <div className="text-xl font-extrabold text-emerald-accent leading-none">15+</div>
+                  <div className="text-xl font-extrabold text-emerald-accent leading-none">{c.aboutExperienceYears}</div>
                   <div className="text-[9px] font-bold text-white/50 uppercase tracking-widest mt-1 font-serif">Years Expertise</div>
                 </div>
               </div>
@@ -180,7 +183,7 @@ export default function Hero({ onOpenConsultation }: HeroProps) {
                 <div className="w-8 h-8 rounded-full bg-emerald-accent/20 flex items-center justify-center text-emerald-accent-dark">
                   <Check size={14} className="stroke-[3]" />
                 </div>
-                <span className="text-xs font-bold text-slate-850">HMRC Compliant</span>
+                <span className="text-xs font-bold text-slate-850">{c.heroFloatingCard1Title}</span>
               </div>
               <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
                 <div className="h-full w-[100%] bg-emerald-accent" />
@@ -194,8 +197,8 @@ export default function Hero({ onOpenConsultation }: HeroProps) {
               transition={{ delay: 1, type: 'spring', stiffness: 60 }}
               className="absolute -left-6 bottom-[10%] w-[190px] bg-white shadow-2xl border border-slate-50 p-4 rounded-2xl text-slate-800 animate-float-delayed z-20 pointer-events-none"
             >
-              <div className="text-[9px] uppercase font-bold tracking-widest text-emerald-accent-dark mb-1 font-serif">Portfolio Growth</div>
-              <div className="text-2xl font-extrabold text-teal leading-none">+24.8%</div>
+              <div className="text-[9px] uppercase font-bold tracking-widest text-emerald-accent-dark mb-1 font-serif">{c.heroFloatingCard2Title}</div>
+              <div className="text-2xl font-extrabold text-teal leading-none">{c.heroFloatingCard2Value}</div>
               <div className="flex gap-1 h-8 items-end mt-2">
                 <div className="flex-1 bg-slate-100 h-[40%] rounded-sm" />
                 <div className="flex-1 bg-slate-100 h-[60%] rounded-sm" />
@@ -211,3 +214,4 @@ export default function Hero({ onOpenConsultation }: HeroProps) {
     </section>
   );
 }
+

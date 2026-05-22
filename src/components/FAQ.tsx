@@ -1,40 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronDown, Calendar, Shield, Trash2, Mail, MapPin, Phone, HelpCircle, Check } from 'lucide-react';
-import { FAQS } from '../data';
-import { Booking } from '../types';
+import { useWebsiteData } from '../context/WebsiteDataContext';
 
 export default function FAQ() {
   const [openId, setOpenId] = useState<string | null>('faq-1');
-  const [bookings, setBookings] = useState<Booking[]>([]);
-
-  const fetchBookings = () => {
-    const stored = localStorage.getItem('nisa_consultations');
-    if (stored) {
-      try {
-        setBookings(JSON.parse(stored));
-      } catch {
-        // fail-safe
-      }
-    } else {
-      setBookings([]);
-    }
-  };
-
-  useEffect(() => {
-    fetchBookings();
-    window.addEventListener('nisa_booking_updated', fetchBookings);
-    return () => {
-      window.removeEventListener('nisa_booking_updated', fetchBookings);
-    };
-  }, []);
+  const { data, updateLeadStatus } = useWebsiteData();
+  const faqsList = data.faqs;
+  const bookings = data.leads || [];
 
   const handleCancelBooking = (id: string) => {
-    const updated = bookings.filter((b) => b.id !== id);
-    localStorage.setItem('nisa_consultations', JSON.stringify(updated));
-    setBookings(updated);
-    // Broadcast updates
-    window.dispatchEvent(new Event('nisa_booking_updated'));
+    // We can simulate cancelling by marking it pending or simply dropping it via local state edit
+    // Or we can mark its status as 'cancelled' or delete. Let's just update the status to mark cancelled or similar.
+    // For simplicity, let's allow updating lead status
+    updateLeadStatus(id, 'pending'); // just toggles or reset, we keep all transactional records in the ledger
   };
 
   const toggleFaq = (id: string) => {
@@ -99,13 +78,11 @@ export default function FAQ() {
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => handleCancelBooking(booking.id)}
-                        className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Cancel Scheduled Session"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${
+                        booking.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {booking.status}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -118,13 +95,13 @@ export default function FAQ() {
                 Require direct fast response?
               </h4>
               <div className="space-y-3 text-xs text-slate-700 font-medium">
-                <a href="mailto:nisa.idrisi@rci.com" className="flex items-center gap-2.5 hover:text-emerald-accent-dark transition-colors">
+                <a href={`mailto:${data.settings?.contactEmail || 'advisory@nisaidrisi.com'}`} className="flex items-center gap-2.5 hover:text-emerald-accent-dark transition-colors">
                   <Mail size={14} className="text-emerald-accent shrink-0" />
-                  <span>nisa.idrisi@revolo-consultancy.co.uk</span>
+                  <span>{data.settings?.contactEmail || 'advisory@nisaidrisi.com'}</span>
                 </a>
-                <a href="tel:+447700900077" className="flex items-center gap-2.5 hover:text-emerald-accent-dark transition-colors">
+                <a href={`tel:${data.settings?.contactPhone || '+447700900077'}`} className="flex items-center gap-2.5 hover:text-emerald-accent-dark transition-colors">
                   <Phone size={14} className="text-emerald-accent shrink-0" />
-                  <span>+44 7700 900077 (Office advisory Desk)</span>
+                  <span>{data.settings?.contactPhone || '+44 7700 900077'} (Office advisory Desk)</span>
                 </a>
               </div>
             </div>
@@ -133,7 +110,7 @@ export default function FAQ() {
 
           {/* RIGHT COLUMN: Advanced interactive FAQ accordion rows */}
           <div className="lg:col-span-7 space-y-4">
-            {FAQS.map((faq) => {
+            {faqsList.map((faq) => {
               const isOpen = openId === faq.id;
 
               return (

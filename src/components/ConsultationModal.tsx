@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Calendar, Clock, X, Check, ArrowRight, Shield, Award } from 'lucide-react';
-import { SERVICES } from '../data';
+import { useWebsiteData } from '../context/WebsiteDataContext';
 
 interface ConsultationModalProps {
   isOpen: boolean;
@@ -10,6 +10,9 @@ interface ConsultationModalProps {
 }
 
 export default function ConsultationModal({ isOpen, onClose, preselectedServiceId }: ConsultationModalProps) {
+  const { data, addLead } = useWebsiteData();
+  const services = data.services;
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [company, setCompany] = useState('');
@@ -26,9 +29,9 @@ export default function ConsultationModal({ isOpen, onClose, preselectedServiceI
     if (preselectedServiceId) {
       setService(preselectedServiceId);
     } else {
-      setService(SERVICES[0]?.id || '');
+      setService(services[0]?.id || '');
     }
-  }, [preselectedServiceId, isOpen]);
+  }, [preselectedServiceId, isOpen, services]);
 
   // Clean form state on close/open
   useEffect(() => {
@@ -62,27 +65,16 @@ export default function ConsultationModal({ isOpen, onClose, preselectedServiceI
 
     // Simulate reliable API callback
     setTimeout(() => {
-      const newBooking = {
-        id: 'booking_' + Date.now(),
+      const selectedService = services.find(s => s.id === service);
+      addLead({
         name,
         email,
         company,
-        service: SERVICES.find(s => s.id === service)?.title || service,
+        service: selectedService ? selectedService.title : service,
         date,
         time,
-        notes,
-        status: 'confirmed',
-        createdAt: new Date().toISOString(),
-      };
-
-      // Store in localStorage
-      const existing = localStorage.getItem('nisa_consultations');
-      const consultations = existing ? JSON.parse(existing) : [];
-      consultations.push(newBooking);
-      localStorage.setItem('nisa_consultations', JSON.stringify(consultations));
-
-      // Trigger custom window event to update lists in real time
-      window.dispatchEvent(new Event('nisa_booking_updated'));
+        notes
+      });
 
       setIsSubmitting(false);
       setIsSuccess(true);
@@ -124,7 +116,7 @@ export default function ConsultationModal({ isOpen, onClose, preselectedServiceI
                 <span className="text-emerald-accent font-semibold tracking-wider text-xs uppercase block mb-1">
                   Private Advisory Consultation
                 </span>
-                <h3 className="text-xl md:text-2xl font-bold font-sans">
+                <h3 className="text-xl md:text-2xl font-bold font-sans text-white">
                   Book Strategic Discovery Call
                 </h3>
               </div>
@@ -152,11 +144,11 @@ export default function ConsultationModal({ isOpen, onClose, preselectedServiceI
                     Consultation Scheduled!
                   </h4>
                   <p className="text-slate-luxury text-sm mb-6 leading-relaxed">
-                    Thank you, <strong className="text-slate-900">{name}</strong>. Your executive discovery session regarding <strong className="text-slate-900">{SERVICES.find(s => s.id === service)?.title}</strong> is fully secured on <strong className="text-slate-900">{date}</strong> at <strong className="text-slate-900">{time}</strong>.
+                    Thank you, <strong className="text-slate-900">{name}</strong>. Your executive discovery session regarding <strong className="text-slate-900">{services.find(s => s.id === service)?.title}</strong> is fully secured on <strong className="text-slate-900">{date}</strong> at <strong className="text-slate-900">{time}</strong>.
                   </p>
                   <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 text-left text-xs text-slate-500 mb-8 space-y-2">
                     <p className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-accent"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-accent" />
                       A detailed Zoom invitation and custom prep agenda have been sent to <strong>{email}</strong>.
                     </p>
                     <p className="flex items-center gap-2">
@@ -244,10 +236,9 @@ export default function ConsultationModal({ isOpen, onClose, preselectedServiceI
                         id="modal-service"
                         value={service}
                         onChange={(e) => setService(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-sm focus:border-teal focus:bg-white transition-all outline-none appearance-none cursor-pointer"
-                        style={{ backgroundImage: 'rgba(0,0,0,0.05)' }}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-250 bg-slate-50/50 text-sm focus:border-teal focus:bg-white transition-all outline-none appearance-none cursor-pointer"
                       >
-                        {SERVICES.map((s) => (
+                        {services.map((s) => (
                           <option key={s.id} value={s.id}>
                             {s.title}
                           </option>
@@ -326,7 +317,7 @@ export default function ConsultationModal({ isOpen, onClose, preselectedServiceI
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="flex-1 py-3 bg-emerald-accent hover:bg-emerald-accent-dark text-white font-medium rounded-xl transition-all duration-300 shadow-md shadow-emerald-accent/15 flex items-center justify-center gap-2"
+                      className="flex-1 py-3 bg-emerald-accent hover:bg-emerald-accent-dark text-white font-medium rounded-xl transition-all duration-300 shadow-md shadow-emerald-accent/15 flex items-center justify-center gap-2 cursor-pointer text-white"
                     >
                       {isSubmitting ? (
                         <>

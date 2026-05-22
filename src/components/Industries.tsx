@@ -1,7 +1,10 @@
 import { ShoppingBag, Building, Briefcase, Rocket, User, Monitor, HeartPulse, Store, Coins } from 'lucide-react';
-import { INDUSTRIES } from '../data';
+import { useWebsiteData } from '../context/WebsiteDataContext';
 
 export default function Industries() {
+  const { data } = useWebsiteData();
+  const industriesList = data.industries;
+
   const customIconMap: { [key: string]: any } = {
     ShoppingBag,
     Building,
@@ -35,7 +38,7 @@ export default function Industries() {
 
         {/* Modular horizontal structured pill flow list */}
         <div className="flex flex-wrap items-center justify-center gap-4 max-w-5xl mx-auto">
-          {INDUSTRIES.map((ind) => {
+          {industriesList.map((ind) => {
             const IconComp = customIconMap[ind.icon] || Briefcase;
 
             return (

@@ -2,32 +2,35 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Award, Landmark, BookOpen, ShieldCheck, CheckCircle2, MapPin, Building, Globe, ChevronDown, Sparkles } from 'lucide-react';
 import nisaDeskPortrait from '../assets/images/nisa_desk_portrait_1779470330129.png';
+import { useWebsiteData } from '../context/WebsiteDataContext';
 
 export default function About() {
   const [showJourney, setShowJourney] = useState(false);
+  const { data } = useWebsiteData();
+  const c = data.content;
 
-  const qualifications = [
+  const qualificationCards = [
     {
-      icon: 'Award',
-      title: 'MBA in Finance',
+      icon: Award,
+      title: c.aboutQualifications[0] || 'MBA in Finance',
       subtitle: 'Finance & Strategy',
       desc: 'Advanced corporate fiscal strategy, financial modeling, and venture valuation frameworks.',
     },
     {
-      icon: 'Landmark',
-      title: 'BSS in Economics',
+      icon: Landmark,
+      title: c.aboutQualifications[1] || 'BSS in Economics',
       subtitle: 'Economics & Policy',
       desc: 'Macroeconomic structures, policy evaluations, and econometric market behavior models.',
     },
     {
-      icon: 'BookOpen',
-      title: 'UK Accounting Expert',
+      icon: BookOpen,
+      title: c.aboutQualifications[2] || 'UK Accounting Expert',
       subtitle: 'UK GAAP & IFRS',
       desc: 'Comprehensive application of statutory rules, complex double-entry journals, and balance metrics.',
     },
     {
-      icon: 'ShieldCheck',
-      title: 'HMRC Compliance',
+      icon: ShieldCheck,
+      title: c.aboutQualifications[3] || 'HMRC Compliance Specialist',
       subtitle: 'Specialist Advisor',
       desc: 'Precise corporation tax computations, VAT schemes management, and audit defense preparedness.',
     }
@@ -80,14 +83,14 @@ export default function About() {
 
             <div className="space-y-4 text-slate-luxury font-light leading-relaxed text-sm sm:text-base">
               <p>
-                I am a Strategic Finance Executive with extensive experience in UK accounting, financial planning, compliance, and business advisory. As an integral associate of <strong className="text-teal font-medium">RCi Chartered Accountants</strong> and <strong className="text-teal font-medium">Revolo Consultancy</strong>, I have spent years helping progressive businesses scale while maintaining rigorous cash flow optimization.
+                {c.aboutBiography}
               </p>
               <p>
                 My consultancy framework is built on absolute clarity, proactive HMRC compliance forecasting, and long-term capital compounding. Whether you are navigating complicated cross-border VAT schemas or structuring Series Funding allocations, I ensure your balance sheets are fortified to support aggressive expansion goals.
               </p>
             </div>
 
-            {/* Quick Metrics Cards (matching reference image location/affiliation boxes) */}
+            {/* Quick Metrics Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-slate-50 border border-slate-100/80 rounded-2xl p-5 hover:border-emerald-accent/25 transition-all">
                 <span className="text-xs text-slate-500 font-semibold block uppercase tracking-wider mb-1">
@@ -135,21 +138,26 @@ export default function About() {
                       Strategic Accomplishments Timeline
                     </h4>
                     <div className="relative pl-6 border-l border-emerald-accent-light/40 space-y-5 text-xs text-slate-luxury font-light">
-                      <div className="relative">
-                        <span className="absolute -left-[29px] top-0.5 w-3.5 h-3.5 rounded-full bg-emerald-accent border-2 border-white" />
-                        <strong className="text-teal block font-semibold">Associate Director | RCi Chartered Accountants</strong>
-                        <p className="mt-1">Managing comprehensive statutory tax advisory for 50+ medium corporate entities totaling over £120M in collective revenue stream.</p>
-                      </div>
-                      <div className="relative">
-                        <span className="absolute -left-[29px] top-0.5 w-3.5 h-3.5 rounded-full bg-emerald-accent border-2 border-white" />
-                        <strong className="text-teal block font-semibold">Senior Corporate Advisor | Revolo Consultancy</strong>
-                        <p className="mt-1">Architecting business turnaround structures, cross-border corporate alignment, and digital cloud conversion setups.</p>
-                      </div>
-                      <div className="relative">
-                        <span className="absolute -left-[29px] top-0.5 w-3.5 h-3.5 rounded-full bg-emerald-accent border-2 border-white" />
-                        <strong className="text-teal block font-semibold">Postgraduate Executive Research | MBA Finance</strong>
-                        <p className="mt-1">Graduated with absolute honors specializing in strategic venture forecasting and capital structure optimization modeling.</p>
-                      </div>
+                      {c.aboutAchievements?.map((achievement, idx) => (
+                        <div key={idx} className="relative">
+                          <span className="absolute -left-[29px] top-0.5 w-3.5 h-3.5 rounded-full bg-emerald-accent border-2 border-white" />
+                          <strong className="text-teal block font-semibold">Key Achievement {idx + 1}</strong>
+                          <p className="mt-1">{achievement}</p>
+                        </div>
+                      )) || (
+                        <>
+                          <div className="relative">
+                            <span className="absolute -left-[29px] top-0.5 w-3.5 h-3.5 rounded-full bg-emerald-accent border-2 border-white" />
+                            <strong className="text-teal block font-semibold">Associate Director | RCi Chartered Accountants</strong>
+                            <p className="mt-1">Managing comprehensive statutory tax advisory for 50+ medium corporate entities totaling over £120M in collective revenue stream.</p>
+                          </div>
+                          <div className="relative">
+                            <span className="absolute -left-[29px] top-0.5 w-3.5 h-3.5 rounded-full bg-emerald-accent border-2 border-white" />
+                            <strong className="text-teal block font-semibold">Senior Corporate Advisor | Revolo Consultancy</strong>
+                            <p className="mt-1">Architecting business turnaround structures, cross-border corporate alignment, and digital cloud conversion setups.</p>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -159,16 +167,10 @@ export default function About() {
           </div>
         </div>
 
-        {/* Academic and Core Specialized Credential Blocks (Bottom half of About section as in reference image) */}
+        {/* Academic and Core Specialized Credential Blocks */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-20 pt-12 border-t border-slate-100">
-          {qualifications.map((q, idx) => {
-            const iconMap: { [key: string]: any } = {
-              Award: Award,
-              Landmark: Landmark,
-              BookOpen: BookOpen,
-              ShieldCheck: ShieldCheck
-            };
-            const IconComp = iconMap[q.icon] || Award;
+          {qualificationCards.map((q, idx) => {
+            const IconComp = q.icon;
 
             return (
               <div 

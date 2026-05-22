@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { TrendingUp, BookOpen, ShieldCheck, Users, Percent, Activity, ArrowRight, HelpCircle, Check, Sparkles, Coins, Calculator } from 'lucide-react';
-import { SERVICES } from '../data';
+import { useWebsiteData } from '../context/WebsiteDataContext';
 
 interface ServicesProps {
   onOpenConsultation: (serviceId?: string) => void;
 }
 
 export default function Services({ onOpenConsultation }: ServicesProps) {
+  const { data } = useWebsiteData();
+  const services = data.services;
+
   // Calculator state
   const [revenue, setRevenue] = useState(150000);
   const [taxReliefClaims, setTaxReliefClaims] = useState<string[]>([]);
@@ -70,7 +73,7 @@ export default function Services({ onOpenConsultation }: ServicesProps) {
 
         {/* Dynamic Service Card Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {SERVICES.map((s) => {
+          {services.map((s) => {
             const IconComponent = serviceIconMap[s.icon] || BookOpen;
             const isAccounting = s.isFeatured; // Highlighted card
 

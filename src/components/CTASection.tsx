@@ -1,12 +1,16 @@
 import { motion } from 'motion/react';
 import { ArrowRight, MessageSquare, CheckCircle, Sparkles, Building, Briefcase } from 'lucide-react';
 import nisaHeroPortrait from '../assets/images/nisa_hero_portrait_1779470310432.png';
+import { useWebsiteData } from '../context/WebsiteDataContext';
 
 interface CTASectionProps {
   onOpenConsultation: () => void;
 }
 
 export default function CTASection({ onOpenConsultation }: CTASectionProps) {
+  const { data } = useWebsiteData();
+  const c = data.content;
+
   return (
     <section className="py-20 bg-slate-50 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -26,13 +30,12 @@ export default function CTASection({ onOpenConsultation }: CTASectionProps) {
                 Secure Your Strategic Advantage
               </span>
               
-              <h2 className="text-3xl sm:text-4.5xl font-extrabold font-sans leading-tight tracking-tight">
-                Ready to Achieve Financial <br className="hidden sm:inline" />
-                Clarity and <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-accent to-emerald-accent-light">Growth?</span>
+              <h2 className="text-3xl sm:text-4.5xl font-extrabold font-sans leading-tight tracking-tight text-white">
+                {c.ctaHeading}
               </h2>
 
               <p className="text-sm sm:text-base text-white/80 font-light leading-relaxed max-w-2xl">
-                Let's connect and build a strong, compliant financial path together. Schedule your direct 1-on-1 strategic briefing block today.
+                {c.ctaSubtext}
               </p>
 
               {/* Fast Value Seals */}
@@ -57,7 +60,7 @@ export default function CTASection({ onOpenConsultation }: CTASectionProps) {
                   onClick={onOpenConsultation}
                   className="bg-emerald-accent hover:bg-emerald-accent-dark text-teal-dark font-extrabold px-8 py-4 rounded-xl text-xs sm:text-sm tracking-wider uppercase transition-all duration-300 shadow-xl shadow-emerald-accent/25 hover:shadow-2xl hover:shadow-emerald-accent/45 inline-flex items-center gap-2.5 cursor-pointer text-white"
                 >
-                  <span>Book a Free Consultation</span>
+                  <span>{c.ctaButtonText}</span>
                   <ArrowRight size={16} />
                 </button>
               </div>
