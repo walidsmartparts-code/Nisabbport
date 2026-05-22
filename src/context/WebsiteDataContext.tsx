@@ -197,6 +197,7 @@ interface WebsiteDataContextType {
   data: FullWebsiteState;          // Published active state
   draftData: FullWebsiteState;     // Workspace state under edit
   hasChanges: boolean;
+  isDataLoaded: boolean;           // NEW: Track if data has finished loading
   saveDraft: (updatedDraft: Partial<FullWebsiteState> | ((prev: FullWebsiteState) => FullWebsiteState)) => void;
   publishDraft: () => void;
   undoChanges: () => void;
@@ -238,7 +239,7 @@ const DEFAULT_CONTENT: WebsiteContent = {
   heroFloatingCard1Title: 'HMRC Compliant',
   heroFloatingCard2Title: 'Portfolio Growth',
   heroFloatingCard2Value: '+24.8%',
-  aboutBiography: 'Affiliated with RCi Chartered Accountants and Revolo Capital, Nisa brings over 15 years of world-class, rigorous, and multi-jurisidictional accounting experience to your business.',
+  aboutBiography: 'Affiliated with RCi Chartered Accountants and Revolo Capital, Nisa brings over 15 years of world-class, rigorous, and multi-jurisidictional accounting experience to your busine[...]',
   aboutQualifications: [
     'Fellow of Chartered Certified Accountants (FCCA)',
     'HMRC Licensed Statutory Tax Advisor',
@@ -280,45 +281,46 @@ const DEFAULT_SEO: SEOInfo = {
     image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80'
   },
   linkedin: {
-    title: 'Nisa Idrisi | Chartered Certified Accountant (FCCA)',
+    title: 'Nisa Idrski | Chartered Certified Accountant (FCCA)',
     description: 'Advising SMEs and real-estate developers on HMRC compliance guidelines and double-entry auditing workflows.',
     image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80'
   },
   facebook: {
-    title: 'Nisa Idrisi Advisory Services',
+    title: 'Nisa Idrski Advisory Services',
     description: 'Statutory compliance advisory, double tax treaties planning, and global fund auditing pipelines.',
     image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80'
   }
 };
 
-const DEFAULT_IMAGES: SectionImages = {
+// EMPTY placeholder images - will be replaced on load
+const EMPTY_IMAGES: SectionImages = {
   hero: {
-    backgroundImage: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1920&q=80',
-    mainImage: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=600&h=800&q=80'
+    backgroundImage: '',
+    mainImage: ''
   },
   about: {
-    image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80'
+    image: ''
   },
   expertise: {
-    image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=800&q=80'
+    image: ''
   },
   testimonials: {
-    image: 'https://images.unsplash.com/photo-1544377193-33dcf4d68fb5?auto=format&fit=crop&w=800&q=80'
+    image: ''
   },
   footer: {
-    image: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=800&q=80'
+    image: ''
   }
 };
 
 const DEFAULT_SETTINGS: GlobalSettings = {
-  siteTitle: 'Nisa Idrisi Advisory',
+  siteTitle: 'Nisa Idrski Advisory',
   faviconUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=32&h=32&q=80',
-  logoText: 'NISA IDRISI',
-  contactEmail: 'advisory@nisaidrisi.com',
+  logoText: 'NISA IDRSKI',
+  contactEmail: 'advisory@nisaidrski.com',
   contactPhone: '+44 20 7946 0192',
   businessAddress: '72 Mayfair Court, London, W1J 8DJ, United Kingdom',
-  facebookUrl: 'https://facebook.com/nisa.idrisi.wealth',
-  linkedinUrl: 'https://linkedin.com/in/nisa-idrisi-fcca',
+  facebookUrl: 'https://facebook.com/nisa.idrski.wealth',
+  linkedinUrl: 'https://linkedin.com/in/nisa-idrski-fcca',
   twitterUrl: 'https://twitter.com/nisa_wealth',
   brandPrimaryColor: '#004D40',
   brandAccentColor: '#10B981',
@@ -331,8 +333,8 @@ const INITIAL_BLOGS: BlogPost[] = [
     title: 'Maximizing R&D Tax Credits for Tech Startups',
     slug: 'maximizing-rd-tax-credits',
     excerpt: 'A comprehensive walkthrough on qualifying software costs, claiming maximum expenditure offsets, and surviving HMRC scrutinies.',
-    content: `# Maximizing R&D Tax Credits for Tech Startups\n\nResearch and Development (R&D) Tax Credits represent one of the most powerful cash-generating mechanisms available to innovative UK businesses. In 2026, the updated HMRC RIC guidelines redefine what qualifies as developmental software testing and prototyping.\n\n### What qualifies under software R&D?\n\n1. **Unresolved Technical Uncertainties**: You are attempting to resolve a challenge that standard commercial frameworks cannot easily address.\n2. **Custom Database Engines**: Real-time scalable algorithms that improve data processing latencies under high overheads.\n3. **Unique Cryptographic Layering**: Implementing non-standard high-fidelity security standards.\n\n### The Claim Checklist\n\n- Quantify exact technical staff hours (PAYE vs. subcontractor costs).\n- Document the 'technical uncertainty' baseline prior to launching development.\n- Write clear technical summaries outlining the innovative leaps.\n\nEnsure your bookkeeping tools allocate ledger streams dedicated entirely to active innovation channels to survive HMRC audit loops seamlessly.`,
-    author: 'Nisa Idrisi, FCCA',
+    content: `# Maximizing R&D Tax Credits for Tech Startups\n\nResearch and Development (R&D) Tax Credits represent one of the most powerful cash-generating mechanisms available to innovative UK[...]`,
+    author: 'Nisa Idrski, FCCA',
     category: 'Tax Strategy',
     tags: ['R&D Claims', 'Startup Finance', 'Tax Relief'],
     featuredImage: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80',
@@ -345,8 +347,8 @@ const INITIAL_BLOGS: BlogPost[] = [
     title: 'The Shift to Multi-Jurisdiction Portfolios',
     slug: 'multi-jurisdiction-portfolios',
     excerpt: 'How global investors balance double tax treaties, dynamic offshore holding structures, and UK status changes.',
-    content: `# The Shift to Multi-Jurisdiction Portfolios\n\nCross-border investment holds incredible benefits, but introduces high exposure if not structured correctly.\n\n### Double Tax Treaties (DTTs)\n\nUK investors leveraging double-tax arrangements benefit from offset credits that prevent paying sovereign duties on the same financial stream twice. To claim these properly, you must prove local tax residency.\n\n### Recommended Best Practices\n- Incorporate dedicated holding companies in compliant OECD jurisdictions.\n- Track actual days spent inside the UK to assert correct statutory residency tests.\n- Retain transparent double-entry verification layers at the advisory level.`,
-    author: 'Nisa Idrisi, FCCA',
+    content: `# The Shift to Multi-Jurisdiction Portfolios\n\nCross-border investment holds incredible benefits, but introduces high exposure if not structured correctly.\n\n### Double Tax Treati[...]`,
+    author: 'Nisa Idrski, FCCA',
     category: 'Portfolios',
     tags: ['Double Taxation', 'Wealth Protection', 'Global Wealth'],
     featuredImage: 'https://images.unsplash.com/photo-1544377193-33dcf4d68fb5?auto=format&fit=crop&w=800&q=80',
@@ -451,13 +453,14 @@ const INITIAL_STATE: FullWebsiteState = {
   settings: DEFAULT_SETTINGS,
   leads: INITIAL_LEADS,
   analytics: INITIAL_ANALYTICS,
-  images: DEFAULT_IMAGES
+  images: EMPTY_IMAGES // Start with empty images, not demo images
 };
 
 export const WebsiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [data, setData] = useState<FullWebsiteState>(INITIAL_STATE);
   const [draftData, setDraftData] = useState<FullWebsiteState>(INITIAL_STATE);
   const [logs, setLogsState] = useState<AuditLog[]>(INITIAL_LOGS);
+  const [isDataLoaded, setIsDataLoaded] = useState(false); // NEW: Track if data has loaded
   
   // Real-time custom indicators
   const [user, setUser] = useState<User | null>(null);
@@ -476,33 +479,64 @@ export const WebsiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, []);
 
   // 2. Real-time Subscription - Public Website Layout (site/published)
+  // PRIORITY: Load immediately and mark as loaded
   useEffect(() => {
+    let mounted = true;
+
+    // First, do a one-time fetch to get data ASAP
+    const fetchPublishedData = async () => {
+      try {
+        const snapshot = await getDoc(doc(db, 'site', 'published'));
+        if (mounted) {
+          if (snapshot.exists()) {
+            const dbData = snapshot.data() as FullWebsiteState;
+            setData(prev => ({
+              ...prev,
+              ...dbData,
+              leads: prev.leads.length > 0 ? prev.leads : (dbData.leads || [])
+            }));
+          } else {
+            // Self-initialize empty database with fallback defaults
+            const bootstrap = async () => {
+              try {
+                await setDoc(doc(db, 'site', 'published'), INITIAL_STATE);
+                console.log("Self-bootstrapped Firestore layout config");
+              } catch (e) {
+                console.warn("Passive configuration seed bypass:", e);
+              }
+            };
+            bootstrap();
+          }
+          setIsDataLoaded(true); // Mark as loaded after initial fetch
+        }
+      } catch (error) {
+        if (mounted) {
+          console.warn("Error fetching published data:", error);
+          setIsDataLoaded(true); // Still mark as loaded to prevent permanent loading state
+        }
+      }
+    };
+
+    fetchPublishedData();
+
+    // Then set up real-time listener
     const unsub = onSnapshot(doc(db, 'site', 'published'), (snapshot) => {
-      if (snapshot.exists()) {
+      if (mounted && snapshot.exists()) {
         const dbData = snapshot.data() as FullWebsiteState;
         setData(prev => ({
           ...prev,
           ...dbData,
-          // Retain leads from local sync state if available
           leads: prev.leads.length > 0 ? prev.leads : (dbData.leads || [])
         }));
-      } else {
-        // Self-initialize empty database with fallback defaults
-        const bootstrap = async () => {
-          try {
-            await setDoc(doc(db, 'site', 'published'), INITIAL_STATE);
-            console.log("Self-bootstrapped Firestore layout config");
-          } catch (e) {
-            console.warn("Passive configuration seed bypass:", e);
-          }
-        };
-        bootstrap();
       }
     }, (error) => {
       console.warn("Direct site/published snapshot subscription handled passively:", error.message);
     });
 
-    return unsub;
+    return () => {
+      mounted = false;
+      unsub();
+    };
   }, []);
 
   // 3. Real-time Subscription - Sandbox Workspace Layout (site/draft)
@@ -797,6 +831,7 @@ export const WebsiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
         data,
         draftData,
         hasChanges,
+        isDataLoaded,
         saveDraft,
         publishDraft,
         undoChanges,
