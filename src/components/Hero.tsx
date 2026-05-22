@@ -8,7 +8,7 @@ interface HeroProps {
 }
 
 export default function Hero({ onOpenConsultation }: HeroProps) {
-  const { data } = useWebsiteData();
+  const { data, isDataLoaded } = useWebsiteData();
   const c = data.content;
 
   // Stagger wrapper for initial page load
@@ -93,7 +93,7 @@ export default function Hero({ onOpenConsultation }: HeroProps) {
             >
               <button
                 onClick={onOpenConsultation}
-                className="bg-emerald-accent hover:bg-emerald-accent-dark text-white px-8 py-4 rounded-xl text-sm font-bold tracking-wider uppercase transition-all duration-300 shadow-xl shadow-emerald-accent/25 hover:shadow-2xl hover:shadow-emerald-accent/45 flex items-center justify-center gap-2.5 group cursor-pointer"
+                className="bg-emerald-accent hover:bg-emerald-accent-dark text-white px-8 py-4 rounded-xl text-sm font-bold tracking-wider uppercase transition-all duration-300 shadow-xl shadow-em[...]"
               >
                 <span>{c.heroCtaText}</span>
                 <ArrowRight size={16} className="group-hover:translate-x-1.5 transition-transform" />
@@ -104,7 +104,7 @@ export default function Hero({ onOpenConsultation }: HeroProps) {
                   const target = document.getElementById('about');
                   if (target) target.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="border border-white/20 bg-white/5 hover:bg-white/10 text-white px-8 py-4 rounded-xl text-sm font-bold tracking-wider uppercase transition-all duration-300 flex items-center justify-center gap-2"
+                className="border border-white/20 bg-white/5 hover:bg-white/10 text-white px-8 py-4 rounded-xl text-sm font-bold tracking-wider uppercase transition-all duration-300 flex items-ce[...]"
               >
                 <Play size={14} className="fill-white" />
                 <span>Explore Journey</span>
@@ -162,29 +162,39 @@ export default function Hero({ onOpenConsultation }: HeroProps) {
           <div className="lg:col-span-5 relative mt-8 lg:mt-0 flex justify-center">
             
             {/* Elegant Portrait Frame */}
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
-              className="relative w-full max-w-[380px] aspect-[4/5] rounded-[40px] overflow-hidden shadow-2xl border-4 border-white pointer-events-none"
-            >
-              {/* Backdrop Gradient sweep in card */}
-              <div className="absolute inset-0 bg-gradient-to-t from-teal-dark/60 via-transparent to-transparent z-10" />
-              
-              <img
-                src={data.images?.hero?.mainImage || nisaHeroPortrait}
-                alt="Portrait of Strategic Finance Executive Nisa Idrisi"
-                className="w-full h-full object-cover object-center"
-                referrerPolicy="no-referrer"
+            {isDataLoaded && data.images?.hero?.mainImage ? (
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.8, ease: 'easeOut' }}
+                className="relative w-full max-w-[380px] aspect-[4/5] rounded-[40px] overflow-hidden shadow-2xl border-4 border-white pointer-events-none"
+              >
+                {/* Backdrop Gradient sweep in card */}
+                <div className="absolute inset-0 bg-gradient-to-t from-teal-dark/60 via-transparent to-transparent z-10" />
+                
+                <img
+                  src={data.images.hero.mainImage}
+                  alt="Portrait of Strategic Finance Executive Nisa Idrski"
+                  className="w-full h-full object-cover object-center"
+                  referrerPolicy="no-referrer"
+                />
+              </motion.div>
+            ) : (
+              // Loading skeleton while data loads
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.8, ease: 'easeOut' }}
+                className="relative w-full max-w-[380px] aspect-[4/5] rounded-[40px] overflow-hidden shadow-2xl border-4 border-white pointer-events-none bg-gradient-to-br from-slate-700 to-slate-800 animate-pulse"
               />
-            </motion.div>
+            )}
 
             {/* FLOATING CARD 1: HMRC Compliance visual indicator */}
             <motion.div 
               initial={{ x: 40, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: 0.8, type: 'spring', stiffness: 60 }}
-              className="absolute -right-4 top-[15%] w-[180px] bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border border-white/50 text-slate-800 animate-float-slow z-20 pointer-events-none"
+              className="absolute -right-4 top-[15%] w-[180px] bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border border-white/50 text-slate-800 animate-float-slow z-20 pointer-events-[...]"
             >
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 rounded-full bg-emerald-accent/20 flex items-center justify-center text-emerald-accent-dark">
@@ -221,4 +231,3 @@ export default function Hero({ onOpenConsultation }: HeroProps) {
     </section>
   );
 }
-
