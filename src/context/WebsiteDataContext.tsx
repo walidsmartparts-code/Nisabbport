@@ -107,6 +107,9 @@ export interface SectionImages {
   footer: {
     image: string;
   };
+  cta: {
+    image: string;
+  };
 }
 
 export interface GlobalSettings {
@@ -308,6 +311,9 @@ const EMPTY_IMAGES: SectionImages = {
     image: ''
   },
   footer: {
+    image: ''
+  },
+  cta: {
     image: ''
   }
 };

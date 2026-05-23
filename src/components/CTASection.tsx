@@ -1,7 +1,9 @@
 import { motion } from 'motion/react';
-import { ArrowRight, MessageSquare, CheckCircle, Sparkles, Building, Briefcase } from 'lucide-react';
-import nisaHeroPortrait from '../assets/images/nisa_hero_portrait_1779470310432.png';
+import { ArrowRight, MessageSquare, CheckCircle, Sparkles, Building, Briefcase, User } from 'lucide-react';
 import { useWebsiteData } from '../context/WebsiteDataContext';
+
+// Default fallback image for CTA section
+const DEFAULT_CTA_IMAGE = 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80';
 
 interface CTASectionProps {
   onOpenConsultation: () => void;
@@ -10,6 +12,9 @@ interface CTASectionProps {
 export default function CTASection({ onOpenConsultation }: CTASectionProps) {
   const { data } = useWebsiteData();
   const c = data.content;
+  
+  // Get dynamic CTA image from CMS, with fallback
+  const ctaImage = data.images?.cta?.image || DEFAULT_CTA_IMAGE;
 
   return (
     <section className="py-20 bg-slate-50 relative overflow-hidden">
@@ -73,15 +78,25 @@ export default function CTASection({ onOpenConsultation }: CTASectionProps) {
                 <div className="absolute inset-[-12px] border border-white/15 rounded-full animate-pulse pointer-events-none" />
                 <div className="absolute inset-[-24px] border border-white/5 rounded-full pointer-events-none" />
                 
-                {/* Image asset container */}
+                {/* Image asset container - now uses dynamic CTA image from CMS */}
                 <div className="w-52 h-52 sm:w-60 sm:h-60 rounded-full overflow-hidden border-4 border-white/20 shadow-2xl relative bg-teal-dark bg-opacity-80">
-                  <div className="absolute inset-0 bg-gradient-to-t from-teal-dark/30 to-transparent pointer-events-none" />
-                  <img
-                    src={nisaHeroPortrait}
-                    alt="Corporate Advisor Nisa Idrisi smiling"
-                    className="w-full h-full object-cover object-center scale-[1.05]"
-                    referrerPolicy="no-referrer"
-                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-teal-dark/30 to-transparent pointer-events-none z-10" />
+                  {ctaImage ? (
+                    <img
+                      src={ctaImage}
+                      alt="Corporate Advisor Nisa Idrisi"
+                      className="w-full h-full object-cover object-center scale-[1.05]"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        // Fallback if image fails to load
+                        (e.target as HTMLImageElement).src = DEFAULT_CTA_IMAGE;
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-teal-dark/50">
+                      <User size={48} className="text-white/40" />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
