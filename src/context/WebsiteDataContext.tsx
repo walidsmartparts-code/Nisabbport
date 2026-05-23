@@ -466,6 +466,13 @@ export const WebsiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
+  // Helper function to check admin status from current Firebase auth state
+  // Uses auth.currentUser directly to avoid stale closure issues
+  const checkIsAdmin = (): boolean => {
+    const currentUser = auth.currentUser;
+    return currentUser?.email === "walidsmartparts@gmail.com" && currentUser?.emailVerified === true;
+  };
+
   const isAdminUser = user?.email === "walidsmartparts@gmail.com" && user?.emailVerified === true;
   const hasChanges = JSON.stringify(data) !== JSON.stringify(draftData);
 
@@ -637,7 +644,8 @@ export const WebsiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const next = typeof updatedDraft === 'function' ? updatedDraft(prev) : { ...prev, ...updatedDraft };
       
       // Only save to Firestore if user is authenticated as admin
-      if (isAdminUser) {
+      // Use checkIsAdmin() to get fresh auth state, avoiding stale closure
+      if (checkIsAdmin()) {
         setDoc(doc(db, 'site', 'draft'), next)
           .catch(err => handleFirestoreError(err, OperationType.UPDATE, 'site/draft'));
       }
@@ -648,8 +656,9 @@ export const WebsiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const publishDraft = async (): Promise<boolean> => {
     // Require admin authentication to publish
-    if (!isAdminUser) {
-      console.warn('Publish blocked: User is not authenticated as admin');
+    // Use checkIsAdmin() to get fresh auth state from Firebase directly
+    if (!checkIsAdmin()) {
+      console.warn('Publish blocked: User is not authenticated as admin. Current user:', auth.currentUser?.email);
       return false;
     }
 
@@ -686,7 +695,8 @@ export const WebsiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const undoChanges = () => {
     setDraftData(data);
     // Only save to Firestore if user is authenticated as admin
-    if (isAdminUser) {
+    // Use checkIsAdmin() to get fresh auth state
+    if (checkIsAdmin()) {
       setDoc(doc(db, 'site', 'draft'), data)
         .catch(err => handleFirestoreError(err, OperationType.WRITE, 'site/draft'));
     }
@@ -694,8 +704,9 @@ export const WebsiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const resetToDefault = async (): Promise<boolean> => {
     // Require admin authentication to reset
-    if (!isAdminUser) {
-      console.warn('Reset blocked: User is not authenticated as admin');
+    // Use checkIsAdmin() to get fresh auth state from Firebase directly
+    if (!checkIsAdmin()) {
+      console.warn('Reset blocked: User is not authenticated as admin. Current user:', auth.currentUser?.email);
       return false;
     }
 

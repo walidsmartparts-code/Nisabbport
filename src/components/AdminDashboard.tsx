@@ -343,13 +343,45 @@ export default function AdminDashboard() {
   const triggerPublish = async () => {
     if (isPublishing) return;
     
+    // Check if user has Firebase authentication (required for Firestore writes)
+    if (!isAdminUser) {
+      // User is logged in via local credentials but not Firebase
+      // Prompt them to sign in with Google for publishing
+      const shouldSignIn = window.confirm(
+        'Publishing requires Google authentication to save changes to the database.\n\n' +
+        'Would you like to sign in with Google now?'
+      );
+      
+      if (shouldSignIn) {
+        setIsGoogleLoading(true);
+        try {
+          await signInWithGoogle();
+          // After successful sign-in, proceed with publish
+          setIsPublishing(true);
+          const success = await publishDraft();
+          if (success) {
+            showToast('Successfully published all draft edits live!');
+          } else {
+            showToast('Publish failed: Authentication error. Please try signing in again.');
+          }
+        } catch (error) {
+          console.error('Google sign-in error:', error);
+          showToast('Google sign-in failed. Please try again.');
+        } finally {
+          setIsGoogleLoading(false);
+          setIsPublishing(false);
+        }
+      }
+      return;
+    }
+    
     setIsPublishing(true);
     try {
       const success = await publishDraft();
       if (success) {
         showToast('Successfully published all draft edits live!');
       } else {
-        showToast('Publish failed: You must be logged in as an admin to publish changes.');
+        showToast('Publish failed: Authentication error. Please sign in with Google.');
       }
     } catch (error) {
       console.error('Publish error:', error);
@@ -360,12 +392,42 @@ export default function AdminDashboard() {
   };
 
   const triggerResetToTemplates = async () => {
+    // Check if user has Firebase authentication (required for Firestore writes)
+    if (!isAdminUser) {
+      const shouldSignIn = window.confirm(
+        'Resetting requires Google authentication to save changes to the database.\n\n' +
+        'Would you like to sign in with Google now?'
+      );
+      
+      if (shouldSignIn) {
+        setIsGoogleLoading(true);
+        try {
+          await signInWithGoogle();
+          // After successful sign-in, proceed with reset confirmation
+          if (window.confirm('Are you absolutely sure you want to revert ALL sections, settings, blogs, and database entries to sovereign defaults? Your edits will be lost.')) {
+            const success = await resetToDefault();
+            if (success) {
+              showToast('Nisa Idrisi system restored to template state.');
+            } else {
+              showToast('Reset failed: Authentication error. Please try signing in again.');
+            }
+          }
+        } catch (error) {
+          console.error('Google sign-in error:', error);
+          showToast('Google sign-in failed. Please try again.');
+        } finally {
+          setIsGoogleLoading(false);
+        }
+      }
+      return;
+    }
+    
     if (window.confirm('Are you absolutely sure you want to revert ALL sections, settings, blogs, and database entries to sovereign defaults? Your edits will be lost.')) {
       const success = await resetToDefault();
       if (success) {
         showToast('Nisa Idrisi system restored to template state.');
       } else {
-        showToast('Reset failed: You must be logged in as an admin to reset.');
+        showToast('Reset failed: Authentication error. Please sign in with Google.');
       }
     }
   };
@@ -805,6 +867,20 @@ export default function AdminDashboard() {
               <Eye size={13} />
               <span>Full Screen Draft Preview</span>
             </button>
+
+            {/* Auth status indicator */}
+            {isAuthenticated && !isAdminUser && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
+                <span className="text-[10px] font-semibold text-amber-700">Local Auth Only</span>
+              </div>
+            )}
+            {isAdminUser && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                <span className="text-[10px] font-semibold text-emerald-700">Firebase Connected</span>
+              </div>
+            )}
 
             <button 
               onClick={triggerPublish}
