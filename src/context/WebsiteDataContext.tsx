@@ -636,9 +636,11 @@ export const WebsiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setDraftData(prev => {
       const next = typeof updatedDraft === 'function' ? updatedDraft(prev) : { ...prev, ...updatedDraft };
       
-      // Keep Sandbox Workspace fully saved on Google Cloud!
-      setDoc(doc(db, 'site', 'draft'), next)
-        .catch(err => handleFirestoreError(err, OperationType.UPDATE, 'site/draft'));
+      // Only save to Firestore if user is authenticated as admin
+      if (isAdminUser) {
+        setDoc(doc(db, 'site', 'draft'), next)
+          .catch(err => handleFirestoreError(err, OperationType.UPDATE, 'site/draft'));
+      }
 
       return next;
     });
@@ -664,8 +666,11 @@ export const WebsiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const undoChanges = () => {
     setDraftData(data);
-    setDoc(doc(db, 'site', 'draft'), data)
-      .catch(err => handleFirestoreError(err, OperationType.WRITE, 'site/draft'));
+    // Only save to Firestore if user is authenticated as admin
+    if (isAdminUser) {
+      setDoc(doc(db, 'site', 'draft'), data)
+        .catch(err => handleFirestoreError(err, OperationType.WRITE, 'site/draft'));
+    }
   };
 
   const resetToDefault = async () => {
