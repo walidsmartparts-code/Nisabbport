@@ -20,10 +20,10 @@ export default function Footer({ onOpenConsultation }: FooterProps) {
   return (
     <footer className="bg-teal-dark text-white pt-20 pb-10 border-t border-white/5 relative overflow-hidden">
       {/* Dynamic customizable footer background image overlay */}
-      {data.images?.footer?.backgroundImage && (
+      {data.images?.footer?.image && (
         <div 
           className="absolute inset-0 opacity-10 pointer-events-none bg-cover bg-center mix-blend-overlay"
-          style={{ backgroundImage: `url(${data.images.footer.backgroundImage})` }}
+          style={{ backgroundImage: `url(${data.images.footer.image})` }}
         />
       )}
       {/* Dynamic light vector */}

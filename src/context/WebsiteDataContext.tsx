@@ -199,9 +199,9 @@ interface WebsiteDataContextType {
   hasChanges: boolean;
   isDataLoaded: boolean;           // NEW: Track if data has finished loading
   saveDraft: (updatedDraft: Partial<FullWebsiteState> | ((prev: FullWebsiteState) => FullWebsiteState)) => void;
-  publishDraft: () => void;
+  publishDraft: () => Promise<boolean>;
   undoChanges: () => void;
-  resetToDefault: () => void;
+  resetToDefault: () => Promise<boolean>;
   
   // Custom single operations
   addLead: (lead: Omit<Booking, 'id' | 'createdAt' | 'status'>) => void;
@@ -646,21 +646,40 @@ export const WebsiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
   };
 
-  const publishDraft = async () => {
-    addLog({
-      ip: '127.0.0.1 (Web CMS Block)',
-      action: 'Publish Changes',
-      status: 'success',
-      details: 'All sandbox visual modules and layout content guidelines were pushed live to the public ledger.'
-    });
+  const publishDraft = async (): Promise<boolean> => {
+    // Require admin authentication to publish
+    if (!isAdminUser) {
+      console.warn('Publish blocked: User is not authenticated as admin');
+      return false;
+    }
 
     try {
       // Synchronize sandbox draft with production in parallel
-      await setDoc(doc(db, 'site', 'published'), draftData);
-      await setDoc(doc(db, 'site', 'draft'), draftData);
+      await Promise.all([
+        setDoc(doc(db, 'site', 'published'), draftData),
+        setDoc(doc(db, 'site', 'draft'), draftData)
+      ]);
+      
+      // Update local published state only after successful Firebase write
       setData(draftData);
+      
+      addLog({
+        ip: '127.0.0.1 (Web CMS Block)',
+        action: 'Publish Changes',
+        status: 'success',
+        details: 'All sandbox visual modules and layout content guidelines were pushed live to the public ledger.'
+      });
+      
+      return true;
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, 'site/published');
+      console.error('Publish failed:', error);
+      addLog({
+        ip: '127.0.0.1 (Web CMS Block)',
+        action: 'Publish Changes',
+        status: 'failed',
+        details: `Publish operation failed: ${error instanceof Error ? error.message : String(error)}`
+      });
+      return false;
     }
   };
 
@@ -673,21 +692,39 @@ export const WebsiteDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
-  const resetToDefault = async () => {
-    addLog({
-      ip: '127.0.0.1 (Platform Reset)',
-      action: 'Reset Entire Project',
-      status: 'success',
-      details: 'Sovereign database reset to default template standards.'
-    });
+  const resetToDefault = async (): Promise<boolean> => {
+    // Require admin authentication to reset
+    if (!isAdminUser) {
+      console.warn('Reset blocked: User is not authenticated as admin');
+      return false;
+    }
 
     try {
-      await setDoc(doc(db, 'site', 'draft'), INITIAL_STATE);
-      await setDoc(doc(db, 'site', 'published'), INITIAL_STATE);
+      await Promise.all([
+        setDoc(doc(db, 'site', 'draft'), INITIAL_STATE),
+        setDoc(doc(db, 'site', 'published'), INITIAL_STATE)
+      ]);
+      
       setDraftData(INITIAL_STATE);
       setData(INITIAL_STATE);
+      
+      addLog({
+        ip: '127.0.0.1 (Platform Reset)',
+        action: 'Reset Entire Project',
+        status: 'success',
+        details: 'Sovereign database reset to default template standards.'
+      });
+      
+      return true;
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, 'site/published');
+      console.error('Reset failed:', error);
+      addLog({
+        ip: '127.0.0.1 (Platform Reset)',
+        action: 'Reset Entire Project',
+        status: 'failed',
+        details: `Reset operation failed: ${error instanceof Error ? error.message : String(error)}`
+      });
+      return false;
     }
   };
 

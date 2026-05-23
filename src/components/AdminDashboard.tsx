@@ -230,6 +230,9 @@ export default function AdminDashboard() {
 
   // Real-time custom live draft website visualizer state
   const [showDraftPreview, setShowDraftPreview] = useState(false);
+  
+  // Publishing state for proper async feedback
+  const [isPublishing, setIsPublishing] = useState(false);
 
   // Update transient edit objects when the global draft model updates
   useEffect(() => {
@@ -337,15 +340,33 @@ export default function AdminDashboard() {
     showToast('Secure user session terminated.');
   };
 
-  const triggerPublish = () => {
-    publishDraft();
-    showToast('Successfully published all draft edits live!');
+  const triggerPublish = async () => {
+    if (isPublishing) return;
+    
+    setIsPublishing(true);
+    try {
+      const success = await publishDraft();
+      if (success) {
+        showToast('Successfully published all draft edits live!');
+      } else {
+        showToast('Publish failed: You must be logged in as an admin to publish changes.');
+      }
+    } catch (error) {
+      console.error('Publish error:', error);
+      showToast('Publish failed: An unexpected error occurred.');
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
-  const triggerResetToTemplates = () => {
+  const triggerResetToTemplates = async () => {
     if (window.confirm('Are you absolutely sure you want to revert ALL sections, settings, blogs, and database entries to sovereign defaults? Your edits will be lost.')) {
-      resetToDefault();
-      showToast('Nisa Idrisi system restored to template state.');
+      const success = await resetToDefault();
+      if (success) {
+        showToast('Nisa Idrisi system restored to template state.');
+      } else {
+        showToast('Reset failed: You must be logged in as an admin to reset.');
+      }
     }
   };
 
@@ -787,15 +808,24 @@ export default function AdminDashboard() {
 
             <button 
               onClick={triggerPublish}
-              disabled={!hasChanges}
+              disabled={!hasChanges || isPublishing}
               className={`py-2.5 px-5 text-white text-xs font-extrabold uppercase tracking-widest rounded-xl transition-all shadow-md cursor-pointer flex items-center gap-2 ${
-                hasChanges 
+                hasChanges && !isPublishing
                   ? 'bg-[#10B981] hover:bg-emerald-accent-dark shadow-emerald-accent/25' 
                   : 'bg-slate-200 text-slate-400 shadow-none cursor-not-allowed opacity-50'
               }`}
             >
-              <Save size={13} />
-              <span>Publish Workspace Live</span>
+              {isPublishing ? (
+                <>
+                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Publishing...</span>
+                </>
+              ) : (
+                <>
+                  <Save size={13} />
+                  <span>Publish Workspace Live</span>
+                </>
+              )}
             </button>
           </div>
         </header>
